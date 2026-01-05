@@ -4,10 +4,11 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 
-use App\UserRole;
+use App\Enums\UserRole;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
@@ -51,5 +52,14 @@ class User extends Authenticatable
             'password' => 'hashed',
             'user_role' => UserRole::class,
         ];
+    }
+
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            if (!$model->getKey()) {
+                $model->{$model->getKeyName()} = (string) Str::uuid();
+            }
+        });
     }
 }
