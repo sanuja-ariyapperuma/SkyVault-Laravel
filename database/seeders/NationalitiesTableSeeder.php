@@ -46,8 +46,6 @@ class NationalitiesTableSeeder extends Seeder
             ['name' => 'Colombian', 'code' => 'COL'],
             ['name' => 'Peruvian', 'code' => 'PER'],
             ['name' => 'Venezuelan', 'code' => 'VEN'],
-            ['name' => 'Bolivian', 'code' => 'BOL'],
-            ['name' => 'Paraguayan', 'code' => 'PRY'],
             ['name' => 'Guatemalan', 'code' => 'GTM'],
             ['name' => 'Panamanian', 'code' => 'PAN'],
             ['name' => 'Mexican', 'code' => 'MEX'],

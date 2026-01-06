@@ -129,7 +129,6 @@ class CountriesTableSeeder extends Seeder
             ['name' => 'Svalbard and Jan Mayen', 'code' => 'SJM'],
             ['name' => 'Saint Pierre and Miquelon', 'code' => 'SPM'],
             ['name' => 'Aruba', 'code' => 'ABW'],
-            ['name' => 'Curacao', 'code' => 'CUW'],
             ['name' => 'Bonaire, Sint Eustatius and Saba', 'code' => 'BES'],
             ['name' => 'Sint Maarten', 'code' => 'SXM'],
             ['name' => 'Curacao', 'code' => 'CUW'],
