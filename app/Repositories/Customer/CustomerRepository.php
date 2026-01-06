@@ -3,15 +3,15 @@
 namespace App\Repositories\Customer;
 
 use App\Models\Customer;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 
 class CustomerRepository implements CustomerRepositoryInterface
 {
-    public function search(string $term, int $limit = 5): Collection
+    public function search(string $term, int $limit = 5): EloquentCollection
     {
         $term = trim($term);
         if (empty($term)) {
-            return collect();
+            return new EloquentCollection();
         }
         
         // Escape LIKE wildcards to ensure literal matching

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('countries', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('name')->unique()->index()->collation('utf8mb4_unicode_ci');
+            $table->string('name')->unique()->index();
             $table->string('code', 3)->unique();
             $table->timestamps();
         });
