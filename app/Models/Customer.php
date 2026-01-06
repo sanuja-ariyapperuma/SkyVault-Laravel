@@ -60,6 +60,8 @@ class Customer extends BaseModel
 
     protected static function booted()
     {
+        parent::booted(); // Call parent to preserve UUID generation
+        
         static::deleted(function ($customer) {
             $familyGroup = $customer->familyGroup;
             if ($familyGroup && $familyGroup->customers()->count() === 0) {
