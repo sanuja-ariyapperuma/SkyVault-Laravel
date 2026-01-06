@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('passports', function (Blueprint $table) {
         $table->uuid('id')->primary();
 
-        $table->string('passport_number')->unique();
+        $table->string('passport_number')->unique()->index();
         $table->string('last_name')->index();
         $table->string('other_names')->index();
 

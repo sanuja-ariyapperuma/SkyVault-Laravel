@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('customer_phones', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('customer_id')->constrained('customers')->onDelete('cascade')->index();
-            $table->string('phone_number');
+            $table->string('phone_number')->index();
             $table->boolean('is_whatsapp')->default(false);
             $table->boolean('is_default')->default(false);
             $table->timestamps();

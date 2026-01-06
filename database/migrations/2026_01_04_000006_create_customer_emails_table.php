@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('customer_emails', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('customer_id')->constrained('customers')->onDelete('cascade')->index();
-            $table->string('email')->unique();
+            $table->string('email')->unique()->index();
             $table->boolean('is_default')->default(false);
             $table->timestamps();
         });
