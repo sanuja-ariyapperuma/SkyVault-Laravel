@@ -54,4 +54,17 @@ class CustomerRepository implements CustomerRepositoryInterface
             ->limit($limit)
             ->get();
     }
+
+    public function customerDetails(string $customerId) : ?Customer
+    {
+        return Customer::query()
+            ->with([
+                'user' => fn($query) => $query->select(['id', 'first_name', 'last_name']),
+                'addresses' => fn($query) => $query->where('is_default', true)->with('country'),
+                'phones' => fn($query) => $query->where('is_default', true)->select('phone_number'),
+                'emails' => fn($query) => $query->where('is_default', true)->select('email')
+            ])
+            ->find($customerId);
+    }
+
 }

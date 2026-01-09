@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\MetaDataController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CustomerController;
 use Illuminate\Support\Facades\Auth;
@@ -16,6 +17,7 @@ Route::middleware('auth')->group(function () {
 
     Route::prefix('customer')->group(function () {
         Route::post('/search', [CustomerController::class, 'search'])->name('customer.search');
+        Route::get('/{customerid}', [CustomerController::class, 'show'])->name('customer.show');
     });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

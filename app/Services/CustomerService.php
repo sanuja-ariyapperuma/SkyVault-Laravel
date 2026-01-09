@@ -19,4 +19,9 @@ class CustomerService
 
         return $this->customer->search($term);
     }
+
+    public function customerDetails(string $customerId)
+    {
+        return $this->customer->customerDetails($customerId);
+    }
 }
