@@ -15,7 +15,7 @@ class CustomerEmailFactory extends Factory
         return [
             'customer_id' => Customer::factory(),
             'email' => $this->faker->unique()->safeEmail(),
-            'is_primary' => true,
+            'is_default' => true,
         ];
     }
 }

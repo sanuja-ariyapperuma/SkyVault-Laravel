@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Services\CustomerService;
+use App\Services\MetaDataService;
+use App\Enums\Salutation;
+use App\Enums\CommiunicationMethod;
 use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Tests\TestCase;
 use Mockery;
@@ -229,6 +232,164 @@ class CustomerControllerTest extends TestCase
             'term' => 'exact-term-123'
         ]);
 
+        $response->assertStatus(200);
+    }
+
+    public function test_show_with_invalid_uuid_format_returns_400_error()
+    {
+        $response = $this->get('/customer/invalid-uuid');
+        $response->assertStatus(400);
+    }
+
+    public function test_show_with_nonexistent_customer_returns_404_error()
+    {
+        $mockCustomerService = Mockery::mock(CustomerService::class);
+        $mockMetaDataService = Mockery::mock(MetaDataService::class);
+        $this->app->instance(CustomerService::class, $mockCustomerService);
+        $this->app->instance(MetaDataService::class, $mockMetaDataService);
+
+        $customerId = '550e8400-e29b-41d4-a716-446655440000';
+        $salutations = Salutation::cases();
+
+        $mockMetaDataService->shouldReceive('salutations')->once()->andReturn($salutations);
+        $mockCustomerService->shouldReceive('getCustomerShowData')
+            ->once()
+            ->with($customerId, $salutations)
+            ->andReturn(null);
+
+        $response = $this->get("/customer/{$customerId}");
+        $response->assertStatus(404);
+    }
+
+    public function test_show_with_malformed_uuid_returns_400_error()
+    {
+        $malformedUuids = [
+            '550e8400-e29b-41d4-a716',
+            '550e8400-e29b-41d4-a716-44665544zzzz',
+            'not-a-uuid-at-all',
+            '123-456-789'
+        ];
+
+        foreach ($malformedUuids as $uuid) {
+            $response = $this->get("/customer/{$uuid}");
+            $response->assertStatus(400);
+        }
+    }
+
+    public function test_show_with_service_exception_propagates_error()
+    {
+        $mockCustomerService = Mockery::mock(CustomerService::class);
+        $mockMetaDataService = Mockery::mock(MetaDataService::class);
+        $this->app->instance(CustomerService::class, $mockCustomerService);
+        $this->app->instance(MetaDataService::class, $mockMetaDataService);
+
+        $customerId = '550e8400-e29b-41d4-a716-446655440000';
+        $salutations = Salutation::cases();
+
+        $mockMetaDataService->shouldReceive('salutations')->once()->andReturn($salutations);
+        $mockCustomerService->shouldReceive('getCustomerShowData')
+            ->once()
+            ->with($customerId, $salutations)
+            ->andThrow(new \Exception('Database error'));
+
+        $response = $this->get("/customer/{$customerId}");
+        $response->assertStatus(500);
+    }
+
+    public function test_show_with_valid_uuid_and_existing_customer_returns_success()
+    {
+        $mockCustomerService = Mockery::mock(CustomerService::class);
+        $mockMetaDataService = Mockery::mock(MetaDataService::class);
+        $this->app->instance(CustomerService::class, $mockCustomerService);
+        $this->app->instance(MetaDataService::class, $mockMetaDataService);
+
+        $customerId = '550e8400-e29b-41d4-a716-446655440000';
+        $salutations = Salutation::cases();
+        $customerData = [
+            'customerId' => $customerId,
+            'salutations' => $salutations,
+            'customer_first_name' => 'John',
+            'customer_last_name' => 'Doe',
+            'customer_salutation' => Salutation::Mr,
+            'customer_email' => 'john.doe@example.com',
+            'customer_phone' => '+1234567890',
+            'customer_address' => null,
+            'customer_communication_method' => \App\Enums\CommiunicationMethod::EMAIL,
+            'customer_salutations' => Salutation::Mr,
+            'customer_staff_member' => null,
+        ];
+
+        $mockMetaDataService->shouldReceive('salutations')->once()->andReturn($salutations);
+        $mockCustomerService->shouldReceive('getCustomerShowData')
+            ->once()
+            ->with($customerId, $salutations)
+            ->andReturn($customerData);
+
+        $response = $this->get("/customer/{$customerId}");
+        $response->assertStatus(200);
+    }
+
+    public function test_show_with_empty_customer_id_returns_400_error()
+    {
+        $response = $this->get('/customer/');
+        $response->assertStatus(404);
+    }
+
+    public function test_show_with_null_customer_id_returns_400_error()
+    {
+        $response = $this->get('/customer/null');
+        $response->assertStatus(400);
+    }
+
+    public function test_show_calls_meta_service_before_customer_service()
+    {
+        $mockCustomerService = Mockery::mock(CustomerService::class);
+        $mockMetaDataService = Mockery::mock(MetaDataService::class);
+        $this->app->instance(CustomerService::class, $mockCustomerService);
+        $this->app->instance(MetaDataService::class, $mockMetaDataService);
+
+        $customerId = '550e8400-e29b-41d4-a716-446655440000';
+        $salutations = Salutation::cases();
+
+        $mockMetaDataService->shouldReceive('salutations')->once()->andReturn($salutations);
+        $mockCustomerService->shouldReceive('getCustomerShowData')
+            ->once()
+            ->with($customerId, $salutations)
+            ->andReturn(null);
+
+        $this->get("/customer/{$customerId}");
+    }
+
+    public function test_show_with_valid_uuid_v4_format_succeeds()
+    {
+        $mockCustomerService = Mockery::mock(CustomerService::class);
+        $mockMetaDataService = Mockery::mock(MetaDataService::class);
+        $this->app->instance(CustomerService::class, $mockCustomerService);
+        $this->app->instance(MetaDataService::class, $mockMetaDataService);
+
+        $customerId = '550e8400-e29b-41d4-a716-446655440000';
+        $salutations = Salutation::cases();
+        $customerData = [
+            'customerId' => $customerId,
+            'salutations' => $salutations,
+            'customer_first_name' => 'John',
+            'customer_last_name' => 'Doe',
+            'customer_salutation' => Salutation::Mr,
+            'customer_email' => 'john.doe@example.com',
+            'customer_phone' => '+1234567890',
+            'customer_address' => null,
+            'customer_communication_method' => \App\Enums\CommiunicationMethod::EMAIL,
+            'customer_salutations' => Salutation::Mr,
+            'customer_staff_member' => null,
+        ];
+
+        $mockMetaDataService->shouldReceive('salutations')->once()->andReturn($salutations);
+        $mockCustomerService->shouldReceive('getCustomerShowData')
+            ->once()
+            ->with($customerId, $salutations)
+            ->andReturn($customerData);
+
+        $response = $this->get("/customer/{$customerId}");
         $response->assertStatus(200);
     }
 }

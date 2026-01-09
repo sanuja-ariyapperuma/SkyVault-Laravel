@@ -15,7 +15,7 @@ class CustomerPhoneFactory extends Factory
         return [
             'customer_id' => Customer::factory(),
             'phone_number' => $this->faker->phoneNumber(),
-            'is_primary' => true,
+            'is_default' => true,
         ];
     }
 }

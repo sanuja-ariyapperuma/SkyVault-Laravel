@@ -4,6 +4,8 @@ namespace Tests\Unit;
 
 use App\Repositories\Customer\CustomerRepositoryInterface;
 use App\Services\CustomerService;
+use App\Models\Customer;
+use App\Enums\Salutation;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Collection as SupportCollection;
 use Tests\TestCase;
@@ -211,5 +213,153 @@ class CustomerServiceTest extends TestCase
 
         $this->assertInstanceOf(Collection::class, $result);
         $this->assertEquals($expectedResults, $result);
+    }
+
+    public function test_customerDetails_with_valid_id_returns_customer()
+    {
+        $mockRepository = Mockery::mock(CustomerRepositoryInterface::class);
+        $service = new CustomerService($mockRepository);
+
+        $customerId = '550e8400-e29b-41d4-a716-446655440000';
+        $mockCustomer = Mockery::mock(Customer::class);
+
+        $mockRepository->shouldReceive('customerDetails')
+            ->once()
+            ->with($customerId)
+            ->andReturn($mockCustomer);
+
+        $result = $service->customerDetails($customerId);
+
+        $this->assertInstanceOf(Customer::class, $result);
+        $this->assertEquals($mockCustomer, $result);
+    }
+
+    public function test_customerDetails_with_nonexistent_id_returns_null()
+    {
+        $mockRepository = Mockery::mock(CustomerRepositoryInterface::class);
+        $service = new CustomerService($mockRepository);
+
+        $customerId = '550e8400-e29b-41d4-a716-446655440000';
+
+        $mockRepository->shouldReceive('customerDetails')
+            ->once()
+            ->with($customerId)
+            ->andReturn(null);
+
+        $result = $service->customerDetails($customerId);
+
+        $this->assertNull($result);
+    }
+
+    public function test_customerDetails_with_repository_exception_propagates_error()
+    {
+        $mockRepository = Mockery::mock(CustomerRepositoryInterface::class);
+        $service = new CustomerService($mockRepository);
+
+        $customerId = '550e8400-e29b-41d4-a716-446655440000';
+
+        $mockRepository->shouldReceive('customerDetails')
+            ->once()
+            ->with($customerId)
+            ->andThrow(new \Exception('Database connection failed'));
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Database connection failed');
+
+        $service->customerDetails($customerId);
+    }
+
+    public function test_getCustomerShowData_with_existing_customer_returns_transformed_data()
+    {
+        $mockRepository = Mockery::mock(CustomerRepositoryInterface::class);
+        $service = new CustomerService($mockRepository);
+
+        $customerId = '550e8400-e29b-41d4-a716-446655440000';
+        $salutations = Salutation::cases();
+        $mockCustomer = Mockery::mock(Customer::class);
+
+        $mockRepository->shouldReceive('customerDetails')
+            ->once()
+            ->with($customerId)
+            ->andReturn($mockCustomer);
+
+        $result = $service->getCustomerShowData($customerId, $salutations);
+
+        $this->assertIsArray($result);
+        $this->assertNotNull($result);
+    }
+
+    public function test_getCustomerShowData_with_nonexistent_customer_returns_null()
+    {
+        $mockRepository = Mockery::mock(CustomerRepositoryInterface::class);
+        $service = new CustomerService($mockRepository);
+
+        $customerId = '550e8400-e29b-41d4-a716-446655440000';
+        $salutations = Salutation::cases();
+
+        $mockRepository->shouldReceive('customerDetails')
+            ->once()
+            ->with($customerId)
+            ->andReturn(null);
+
+        $result = $service->getCustomerShowData($customerId, $salutations);
+
+        $this->assertNull($result);
+    }
+
+    public function test_getCustomerShowData_calls_customerDetails_with_correct_id()
+    {
+        $mockRepository = Mockery::mock(CustomerRepositoryInterface::class);
+        $service = new CustomerService($mockRepository);
+
+        $customerId = '550e8400-e29b-41d4-a716-446655440000';
+        $salutations = Salutation::cases();
+        $mockCustomer = Mockery::mock(Customer::class);
+
+        $mockRepository->shouldReceive('customerDetails')
+            ->once()
+            ->with($customerId)
+            ->andReturn($mockCustomer);
+
+        $service->getCustomerShowData($customerId, $salutations);
+    }
+
+    public function test_getCustomerShowData_with_empty_salutations_array_still_works()
+    {
+        $mockRepository = Mockery::mock(CustomerRepositoryInterface::class);
+        $service = new CustomerService($mockRepository);
+
+        $customerId = '550e8400-e29b-41d4-a716-446655440000';
+        $salutations = [];
+        $mockCustomer = Mockery::mock(Customer::class);
+
+        $mockRepository->shouldReceive('customerDetails')
+            ->once()
+            ->with($customerId)
+            ->andReturn($mockCustomer);
+
+        $result = $service->getCustomerShowData($customerId, $salutations);
+
+        $this->assertIsArray($result);
+        $this->assertNotNull($result);
+    }
+
+    public function test_getCustomerShowData_with_repository_exception_propagates_error()
+    {
+        $mockRepository = Mockery::mock(CustomerRepositoryInterface::class);
+        $service = new CustomerService($mockRepository);
+
+        $customerId = '550e8400-e29b-41d4-a716-446655440000';
+        $salutations = Salutation::cases();
+
+        $mockRepository->shouldReceive('customerDetails')
+            ->once()
+            ->with($customerId)
+            ->andThrow(new \Exception('Database error'));
+
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Database error');
+
+        $service->getCustomerShowData($customerId, $salutations);
     }
 }

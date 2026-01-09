@@ -15,8 +15,8 @@ class CustomerFactory extends Factory
         return [
             'first_name' => $this->faker->firstName(),
             'last_name' => $this->faker->lastName(),
+            'user_id' => \App\Models\User::factory(),
             'salutation' => $this->faker->randomElement(Salutation::cases()),
-            'date_of_birth' => $this->faker->date(),
             'communication_method' => 'email',
         ];
     }

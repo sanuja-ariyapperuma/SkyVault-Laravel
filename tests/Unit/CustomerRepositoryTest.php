@@ -3,6 +3,11 @@
 namespace Tests\Unit;
 
 use App\Models\Customer;
+use App\Models\User;
+use App\Models\CustomerEmail;
+use App\Models\CustomerPhone;
+use App\Models\CustomerAddress;
+use App\Models\Country;
 use App\Repositories\Customer\CustomerRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -335,5 +340,156 @@ class CustomerRepositoryTest extends TestCase
         
         $this->assertCount(1, $result);
         $this->assertEquals($customer->id, $result->first()->id);
+    }
+
+    public function test_customerDetails_with_valid_id_returns_customer_with_relations()
+    {
+        $customer = Customer::factory()->create();
+        $user = User::factory()->create();
+        $email = CustomerEmail::factory()->create(['customer_id' => $customer->id, 'is_default' => true]);
+        $phone = CustomerPhone::factory()->create(['customer_id' => $customer->id, 'is_default' => true]);
+        $country = Country::factory()->create();
+        $address = CustomerAddress::factory()->create([
+            'customer_id' => $customer->id,
+            'country_id' => $country->id,
+            'is_default' => true
+        ]);
+
+        $result = $this->repository->customerDetails($customer->id);
+
+        $this->assertInstanceOf(Customer::class, $result);
+        $this->assertEquals($customer->id, $result->id);
+        $this->assertTrue($result->relationLoaded('user'));
+        $this->assertTrue($result->relationLoaded('emails'));
+        $this->assertTrue($result->relationLoaded('phones'));
+        $this->assertTrue($result->relationLoaded('addresses'));
+    }
+
+    public function test_customerDetails_with_nonexistent_id_returns_null()
+    {
+        $result = $this->repository->customerDetails('550e8400-e29b-41d4-a716-446655440000');
+
+        $this->assertNull($result);
+    }
+
+    public function test_customerDetails_loads_only_default_relations()
+    {
+        $customer = Customer::factory()->create();
+        
+        CustomerEmail::factory()->create(['customer_id' => $customer->id, 'is_default' => false]);
+        CustomerEmail::factory()->create(['customer_id' => $customer->id, 'is_default' => true]);
+        
+        CustomerPhone::factory()->create(['customer_id' => $customer->id, 'is_default' => false]);
+        CustomerPhone::factory()->create(['customer_id' => $customer->id, 'is_default' => true]);
+        
+        $country = Country::factory()->create();
+        CustomerAddress::factory()->create([
+            'customer_id' => $customer->id,
+            'country_id' => $country->id,
+            'is_default' => false
+        ]);
+        CustomerAddress::factory()->create([
+            'customer_id' => $customer->id,
+            'country_id' => $country->id,
+            'is_default' => true
+        ]);
+
+        $result = $this->repository->customerDetails($customer->id);
+
+        $this->assertCount(1, $result->emails);
+        $this->assertTrue($result->emails->first()->is_default);
+        
+        $this->assertCount(1, $result->phones);
+        $this->assertTrue($result->phones->first()->is_default);
+        
+        $this->assertCount(1, $result->addresses);
+        $this->assertTrue($result->addresses->first()->is_default);
+    }
+
+    public function test_customerDetails_selects_specific_user_fields()
+    {
+        $customer = Customer::factory()->create();
+        $user = User::factory()->create();
+
+        $result = $this->repository->customerDetails($customer->id);
+
+        $this->assertTrue($result->relationLoaded('user'));
+        $loadedUser = $result->user;
+        
+        $this->assertEquals(['id', 'first_name', 'last_name'], array_keys($loadedUser->getAttributes()));
+    }
+
+    public function test_customerDetails_selects_specific_email_fields()
+    {
+        $customer = Customer::factory()->create();
+        $email = CustomerEmail::factory()->create(['customer_id' => $customer->id, 'is_default' => true]);
+
+        $result = $this->repository->customerDetails($customer->id);
+
+        $this->assertTrue($result->relationLoaded('emails'));
+        $loadedEmail = $result->emails->first();
+        
+        if ($loadedEmail) {
+            $this->assertEquals(['email'], array_keys($loadedEmail->getAttributes()));
+        }
+    }
+
+    public function test_customerDetails_selects_specific_phone_fields()
+    {
+        $customer = Customer::factory()->create();
+        $phone = CustomerPhone::factory()->create(['customer_id' => $customer->id, 'is_default' => true]);
+
+        $result = $this->repository->customerDetails($customer->id);
+
+        $this->assertTrue($result->relationLoaded('phones'));
+        $loadedPhone = $result->phones->first();
+        
+        if ($loadedPhone) {
+            $this->assertEquals(['phone_number'], array_keys($loadedPhone->getAttributes()));
+        }
+    }
+
+    public function test_customerDetails_includes_country_in_address_relation()
+    {
+        $customer = Customer::factory()->create();
+        $country = Country::factory()->create();
+        $address = CustomerAddress::factory()->create([
+            'customer_id' => $customer->id,
+            'country_id' => $country->id,
+            'is_default' => true
+        ]);
+
+        $result = $this->repository->customerDetails($customer->id);
+
+        $this->assertTrue($result->relationLoaded('addresses'));
+        $loadedAddress = $result->addresses->first();
+        $this->assertTrue($loadedAddress->relationLoaded('country'));
+    }
+
+    public function test_customerDetails_with_null_user_handles_gracefully()
+    {
+        $user = \App\Models\User::factory()->create();
+        $customer = Customer::factory()->create(['user_id' => $user->id]);
+
+        $result = $this->repository->customerDetails($customer->id);
+
+        $this->assertInstanceOf(Customer::class, $result);
+        $this->assertTrue($result->relationLoaded('user'));
+        $this->assertNotNull($result->user);
+    }
+
+    public function test_customerDetails_with_no_default_relations_returns_empty_collections()
+    {
+        $customer = Customer::factory()->create();
+
+        $result = $this->repository->customerDetails($customer->id);
+
+        $this->assertTrue($result->relationLoaded('emails'));
+        $this->assertTrue($result->relationLoaded('phones'));
+        $this->assertTrue($result->relationLoaded('addresses'));
+        
+        $this->assertCount(0, $result->emails);
+        $this->assertCount(0, $result->phones);
+        $this->assertCount(0, $result->addresses);
     }
 }
