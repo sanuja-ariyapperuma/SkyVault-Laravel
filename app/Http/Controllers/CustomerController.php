@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Services\CustomerService;
 use App\Services\MetaDataService;
+use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller as BaseController;
+use Illuminate\Support\Str;
 
 class CustomerController extends BaseController
 {
@@ -40,32 +42,20 @@ class CustomerController extends BaseController
         }
     }
 
-    public function show($customerId){
-        try {
-            $salutations = $this->metaService->salutations();
-            $customer = $this->customerService->customerDetails($customerId);
-
-            //dd($customer->phones()->first()->phone_number);
-
-            return view('customer.show', [
-                'customerId' => $customerId,
-                'salutations' => $salutations,
-                'customer_first_name' => $customer->first_name,
-                'customer_last_name' => $customer->last_name,
-                'customer_salutation' => $customer->salutation,
-                'customer_assigned_user' => $customer->user ? $customer->user->first_name . " " . $customer->user->last_name : null,
-                'customer_email' => $customer->emails()->first()?->email,
-                'customer_phone' => $customer->phones()->first()?->phone_number,
-                'customer_address' => $customer->addresses()->first(),
-                'customer_communication_method' => $customer->communication_method,
-                'customer_salutations' => $customer->salutation,
-                'customer_staff_member' => $customer->user ? $customer->user->first_name . " " . $customer->user->last_name : null,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Bad request: ' . $e->getMessage()
-            ], 400);
+    public function show(string $customerid): View
+    {
+        
+        if (empty($customerid) || !Str::isUuid($customerid)) {
+            abort(400, 'Invalid customer ID format');
         }
+
+        $salutations = $this->metaService->salutations();
+        $customerData = $this->customerService->getCustomerShowData($customerid, $salutations);
+
+        if (is_null($customerData)) {
+            abort(404, 'Customer not found');
+        }
+
+        return view('customer.show', $customerData);
     }
 }
