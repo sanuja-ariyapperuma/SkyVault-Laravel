@@ -15,8 +15,7 @@ class CustomerController extends BaseController
     use ValidatesRequests;
 
     public function __construct(
-        private CustomerService $customerService,
-        private MetaDataService $metaService
+        private CustomerService $customerService
     ) {}
 
     public function search(Request $request)
@@ -42,14 +41,14 @@ class CustomerController extends BaseController
         }
     }
 
-    public function show(string $customerid): View
+    public function show(MetaDataService $metaService, string $customerid): View
     {
         
         if (empty($customerid) || !Str::isUuid($customerid)) {
             abort(400, 'Invalid customer ID format');
         }
 
-        $salutations = $this->metaService->salutations();
+        $salutations = $metaService->salutations();
         $customerData = $this->customerService->getCustomerShowData($customerid, $salutations);
 
         if (is_null($customerData)) {
