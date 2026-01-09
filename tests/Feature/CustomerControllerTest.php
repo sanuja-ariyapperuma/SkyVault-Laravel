@@ -7,12 +7,27 @@ use App\Services\MetaDataService;
 use App\Enums\Salutation;
 use App\Enums\CommiunicationMethod;
 use Illuminate\Foundation\Testing\WithoutMiddleware;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use Mockery;
+use App\Models\User;
 
 class CustomerControllerTest extends TestCase
 {
-    use WithoutMiddleware;
+    use WithoutMiddleware, RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        
+        // Create and authenticate a user for view rendering
+        $user = User::factory()->create([
+            'first_name' => 'Test',
+            'last_name' => 'User',
+            'email' => 'test@example.com'
+        ]);
+        $this->actingAs($user);
+    }
 
     protected function tearDown(): void
     {

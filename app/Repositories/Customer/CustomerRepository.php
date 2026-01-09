@@ -61,8 +61,8 @@ class CustomerRepository implements CustomerRepositoryInterface
             ->with([
                 'user' => fn($query) => $query->select(['id', 'first_name', 'last_name']),
                 'addresses' => fn($query) => $query->where('is_default', true)->with('country'),
-                'phones' => fn($query) => $query->where('is_default', true)->select('phone_number'),
-                'emails' => fn($query) => $query->where('is_default', true)->select('email')
+                'phones' => fn($query) => $query->where('is_default', true)->select(['phone_number', 'customer_id', 'is_default']),
+                'emails' => fn($query) => $query->where('is_default', true)->select(['email', 'customer_id', 'is_default'])
             ])
             ->find($customerId);
     }

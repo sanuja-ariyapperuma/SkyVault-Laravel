@@ -12,6 +12,13 @@ class CustomerAddress extends BaseModel
 
     protected $guarded = ['id'];
 
+    protected function casts(): array
+    {
+        return [
+            'is_default' => 'boolean',
+        ];
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);

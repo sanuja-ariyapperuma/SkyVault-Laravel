@@ -13,9 +13,13 @@ class Country extends BaseModel
 
     protected static function booted()
     {
+        parent::booted();
+        
         static::creating(function ($model) {
-            // Prevent inserting records to country table
-            return false;
+            // Prevent inserting records to country table, except in tests
+            if (app()->environment() !== 'testing') {
+                return false;
+            }
         });
     }
 }

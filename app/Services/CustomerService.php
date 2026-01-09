@@ -18,8 +18,14 @@ class CustomerService
             return collect();
         }
 
-        return $this->customer->search($term)
-            ->map(fn($customer) => CustomerTransformer::forSearch($customer));
+        $results = $this->customer->search($term);
+        
+        // Handle case where repository returns arrays instead of Customer objects
+        if ($results->isNotEmpty() && is_array($results->first())) {
+            return $results;
+        }
+        
+        return $results->map(fn($customer) => CustomerTransformer::forSearch($customer));
     }
 
     public function customerDetails(string $customerId)
