@@ -16,8 +16,9 @@
                     </div>
                     <div class="grid grid-cols-2 gap-2">
                         <input type="text" id="new_city" placeholder="City" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <input type="text" id="new_state" placeholder="State/Province" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="text" id="new_state" placeholder="State/Province" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
+                    <input type="text" id="new_postal_code" placeholder="Postal Code (Optional)" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <select id="new_country" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" aria-describedby="addressHelp">
                         <option value="">Select Country...</option>
                         <option value="us">United States</option>
@@ -28,7 +29,7 @@
                     </select>
                     <button onclick="AddressModal.addAddress()" class="text-blue-600 hover:text-blue-800 hover:underline focus:outline-none focus:text-blue-800 focus:ring-2 focus:ring-blue-500" aria-label="Add address">+ Add Address</button>
                 </div>
-                <p id="addressHelp" class="text-xs text-gray-500 mt-1">All fields except Address Line 2 are required</p>
+                <p id="addressHelp" class="text-xs text-gray-500 mt-1">Address Line 1, City, and Country are required. State and Postal Code are optional.</p>
             </section>
             
             <section class="mb-4">
@@ -37,11 +38,6 @@
                     <!-- Addresses will be added here dynamically -->
                 </div>
             </section>
-            
-            <footer class="flex justify-end space-x-3 mt-6">
-                <button onclick="AddressModal.close()" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">Cancel</button>
-                <button onclick="AddressModal.save()" class="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">Save</button>
-            </footer>
         </div>
     </div>
 </div>

@@ -2,13 +2,73 @@
 (() => {
     'use strict';
     
-    // Cache DOM elements
+    // Cache DOM elements and state
     const elements = {
         modal: null,
         list: null,
         input: null,
-        helpText: null
+        helpText: null,
+        modalLoaded: false
     };
+    
+    let emails = [];
+    
+    // Constants
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const API_ENDPOINT = '/customer';
+    const MESSAGES = {
+        LOAD_ERROR: 'Failed to load email modal. Please try again.',
+        EMPTY_EMAIL: 'Please enter an email address',
+        INVALID_EMAIL: 'Please enter a valid email address',
+        DUPLICATE_EMAIL: 'This email address already exists'
+    };
+    
+    // Load modal HTML via AJAX
+    async function loadModalHtml() {
+        if (elements.modalLoaded) return;
+        
+        try {
+            const customerId = window.customerData?.id;
+            if (!customerId) throw new Error('Customer ID not found');
+            
+            const response = await fetch(`${API_ENDPOINT}/${customerId}/email-modal`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                },
+                credentials: 'include'
+            });
+            
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(result.message || 'Failed to load modal');
+            }
+            
+            // Append modal HTML to body
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = result.html;
+            const modalElement = tempDiv.firstElementChild;
+            if (modalElement) {
+                document.body.appendChild(modalElement);
+            }
+            
+            // Update emails data if provided
+            if (result.data?.emails) {
+                window.customerData.emails = result.data.emails;
+                emails = result.data.emails;
+            }
+            
+            elements.modalLoaded = true;
+        } catch (error) {
+            console.error('Error loading email modal:', error);
+            alert(MESSAGES.LOAD_ERROR);
+        }
+    }
     
     // Initialize DOM references
     function initializeElements() {
@@ -20,11 +80,14 @@
     
     // Email validation
     function validateEmail(email) {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const cleanEmail = email.trim();
+        const isValid = EMAIL_REGEX.test(cleanEmail);
+        
         return {
-            isValid: emailRegex.test(email),
-            error: !email ? 'Please enter an email address' : 
-                   !emailRegex.test(email) ? 'Please enter a valid email address' : 
+            isValid,
+            cleanEmail,
+            error: !cleanEmail ? MESSAGES.EMPTY_EMAIL : 
+                   !isValid ? MESSAGES.INVALID_EMAIL : 
                    null
         };
     }
@@ -32,7 +95,7 @@
     // Check for duplicate email addresses
     function isDuplicateEmail(email, excludeIndex = -1) {
         return emails.some((emailItem, index) => 
-            emailItem.address === email && index !== excludeIndex
+            emailItem.email === email && index !== excludeIndex
         );
     }
     
@@ -45,36 +108,46 @@
             <div class="flex items-center space-x-3 flex-1">
                 <input type="radio" name="default_email_modal" value="${index}" ${email.isDefault ? 'checked' : ''} 
                        class="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500" 
-                       onchange="EmailModal.setDefaultEmail(${index})" aria-label="Set as default email">
-                <span class="text-sm ${email.isDefault ? 'font-medium text-blue-600' : 'text-gray-700'}">${email.address}</span>
+                       onchange="EmailModal.setDefaultEmail(${index})" aria-label="Set as default email address">
+                <span class="text-sm ${email.isDefault ? 'font-medium text-blue-600' : 'text-gray-700'}">${email.email}</span>
                 ${email.isDefault ? '<span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full" aria-label="Default email address">Default</span>' : ''}
             </div>
             <div class="flex items-center space-x-2">
                 <button onclick="EmailModal.editEmail(${index})" 
                         class="text-blue-600 hover:text-blue-800 text-sm hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                        aria-label="Edit email address ${email.address}">Edit</button>
+                        aria-label="Edit email address ${email.email}">Edit</button>
                 <button onclick="EmailModal.removeEmail(${index})" 
                         class="text-red-600 hover:text-red-800 text-sm hover:underline focus:outline-none focus:ring-2 focus:ring-red-500" 
-                        aria-label="Delete email address ${email.address}">Delete</button>
+                        aria-label="Delete email address ${email.email}">Delete</button>
             </div>
         `;
         return emailDiv;
     }
     
+    // Show error message
+    function showError(message) {
+        alert(message);
+        elements.input?.focus();
+    }
+    
     // Public API
     window.EmailModal = {
-        open() {
+        async open() {
+            await loadModalHtml();
             if (!elements.modal) initializeElements();
             elements.modal.classList.remove('hidden');
             elements.modal.setAttribute('aria-hidden', 'false');
             this.render();
-            elements.input.focus();
+            elements.input?.focus();
         },
         
         close() {
             if (!elements.modal) initializeElements();
             elements.modal.classList.add('hidden');
             elements.modal.setAttribute('aria-hidden', 'true');
+            
+            // Update the main email display when modal closes
+            updateEmailDisplay();
         },
         
         render() {
@@ -94,44 +167,127 @@
             elements.list.appendChild(fragment);
         },
         
-        setDefaultEmail(index) {
-            emails.forEach((email, i) => {
-                email.isDefault = i === index;
-            });
-            this.render();
+        async setDefaultEmail(index) {
+            try {
+                const customerId = window.customerData?.id;
+                const email = emails[index];
+                
+                if (!customerId) throw new Error('Customer ID not found');
+                if (!email.id) throw new Error('Email ID not found');
+                
+                const response = await fetch(`${API_ENDPOINT}/${customerId}/emails/${email.id}/default`, {
+                    method: 'PUT',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                    },
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.message || 'Failed to update default email address');
+                }
+                
+                // Update local state: remove default from all emails, set new default
+                emails.forEach((email, i) => {
+                    email.isDefault = i === index;
+                });
+                
+                this.render();
+                
+            } catch (error) {
+                console.error('Error setting default email:', error);
+                showError(error.message || MESSAGES.LOAD_ERROR);
+                // Revert the radio button selection on error
+                this.render();
+            }
         },
         
-        addEmail() {
+        async addEmail() {
             if (!elements.input) initializeElements();
-            const address = elements.input.value.trim();
+            const email = elements.input.value.trim();
+            const button = elements.input.nextElementSibling;
             
-            const validation = validateEmail(address);
+            const validation = validateEmail(email);
             if (!validation.isValid) {
-                alert(validation.error);
-                elements.input.focus();
+                showError(validation.error);
                 return;
             }
             
-            if (isDuplicateEmail(address)) {
-                alert('This email address already exists');
-                elements.input.focus();
+            if (isDuplicateEmail(validation.cleanEmail)) {
+                showError(MESSAGES.DUPLICATE_EMAIL);
                 return;
             }
             
-            emails.push({
-                address: address,
-                isDefault: emails.length === 0
-            });
+            // Show loading state
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Adding...';
             
-            elements.input.value = '';
-            this.render();
+            try {
+                const customerId = window.customerData?.id;
+                if (!customerId) throw new Error('Customer ID not found');
+                
+                const response = await fetch(`${API_ENDPOINT}/${customerId}/emails`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        email: validation.cleanEmail
+                    }),
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.message || 'Failed to add email address');
+                }
+                
+                // Add the new email to the local array
+                emails.push({
+                    id: result.data.id,
+                    email: result.data.email,
+                    isDefault: emails.length === 0 // First email is default
+                });
+                
+                // Reset form
+                elements.input.value = '';
+                this.render();
+                
+            } catch (error) {
+                console.error('Error adding email:', error);
+                showError(error.message || MESSAGES.LOAD_ERROR);
+            } finally {
+                // Restore button state
+                button.disabled = false;
+                button.textContent = originalText;
+            }
         },
         
         editEmail(index) {
             const email = emails[index];
             if (!elements.input) initializeElements();
             
-            elements.input.value = email.address;
+            elements.input.value = email.email;
+            
             const button = elements.input.nextElementSibling;
             button.textContent = 'Edit';
             button.setAttribute('onclick', `EmailModal.updateEmail(${index})`);
@@ -141,61 +297,147 @@
             elements.input.scrollIntoView({ behavior: 'smooth', block: 'center' });
         },
         
-        updateEmail(index) {
+        async updateEmail(index) {
             if (!elements.input) initializeElements();
-            const address = elements.input.value.trim();
+            const email = elements.input.value.trim();
+            const button = elements.input.nextElementSibling;
             
-            const validation = validateEmail(address);
+            const validation = validateEmail(email);
             if (!validation.isValid) {
-                alert(validation.error);
-                elements.input.focus();
+                showError(validation.error);
                 return;
             }
             
-            if (isDuplicateEmail(address, index)) {
-                alert('This email address already exists');
-                elements.input.focus();
+            if (isDuplicateEmail(validation.cleanEmail, index)) {
+                showError(MESSAGES.DUPLICATE_EMAIL);
                 return;
             }
             
-            if (address !== emails[index].address) {
-                emails[index].address = address;
+            // Show loading state
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Updating...';
+            
+            try {
+                const customerId = window.customerData?.id;
+                const emailItem = emails[index];
+                
+                if (!customerId) throw new Error('Customer ID not found');
+                if (!emailItem.id) throw new Error('Email ID not found');
+                
+                const response = await fetch(`${API_ENDPOINT}/${customerId}/emails/${emailItem.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        email: validation.cleanEmail
+                    }),
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.message || 'Failed to update email address');
+                }
+                
+                // Update the email in the local array
+                emails[index].email = result.data.email;
+                
                 this.render();
+                this.resetAddButton();
+                
+            } catch (error) {
+                console.error('Error updating email:', error);
+                showError(error.message || MESSAGES.LOAD_ERROR);
+            } finally {
+                // Restore button state
+                button.disabled = false;
+                button.textContent = originalText;
             }
-            
+        },
+        
+        resetAddButton() {
+            if (!elements.input) return;
             elements.input.value = '';
             const button = elements.input.nextElementSibling;
-            button.textContent = '+ Add';
-            button.setAttribute('onclick', 'EmailModal.addEmail()');
-            button.setAttribute('aria-label', 'Add email address');
+            if (button) {
+                button.textContent = '+ Add';
+                button.setAttribute('onclick', 'EmailModal.addEmail()');
+                button.setAttribute('aria-label', 'Add email address');
+            }
         },
         
-        removeEmail(index) {
-            const wasDefault = emails[index].isDefault;
-            emails.splice(index, 1);
+        async removeEmail(index) {
+            const email = emails[index];
             
-            if (wasDefault && emails.length > 0) {
-                emails[0].isDefault = true;
+            // Check if trying to delete default email
+            if (email.isDefault) {
+                if (emails.length <= 1) {
+                    alert('Cannot delete the only email address. Please add another email address first.');
+                    return;
+                } else {
+                    alert('Cannot delete the default email address. Please set another email address as default first, then delete this one.');
+                    return;
+                }
             }
             
-            this.render();
-        },
-        
-        save() {
-            const selectedDefault = document.querySelector('input[name="default_email_modal"]:checked');
-            if (selectedDefault) {
-                emails.forEach((email, index) => {
-                    email.isDefault = index === parseInt(selectedDefault.value);
+            // Show confirmation dialog
+            const confirmed = confirm(`Are you sure you want to delete the email address ${email.email}?`);
+            if (!confirmed) {
+                return;
+            }
+            
+            try {
+                const customerId = window.customerData?.id;
+                
+                if (!customerId) throw new Error('Customer ID not found');
+                if (!email.id) throw new Error('Email ID not found');
+                
+                const response = await fetch(`${API_ENDPOINT}/${customerId}/emails/${email.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                    },
+                    credentials: 'include'
                 });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.message || 'Failed to delete email address');
+                }
+                
+                // Remove the email from the local array
+                emails.splice(index, 1);
+                
+                this.render();
+                
+            } catch (error) {
+                console.error('Error deleting email:', error);
+                showError(error.message || MESSAGES.LOAD_ERROR);
             }
-            
-            updateEmailDisplay();
-            this.close();
         }
     };
     
     // Update email display in main form
-    function updateEmailDisplay() {
+    window.updateEmailDisplay = function() {
         const emailDisplay = document.getElementById('email_display');
         if (!emailDisplay) return;
         
@@ -207,27 +449,48 @@
             const otherCount = emails.length - 1;
             
             if (emails.length === 1) {
-                emailDisplay.textContent = defaultEmail.address;
+                emailDisplay.textContent = defaultEmail.email;
                 emailDisplay.className = 'text-sm text-gray-900 mb-2 font-medium';
             } else {
-                emailDisplay.textContent = `${defaultEmail.address} (+${otherCount} more)`;
+                emailDisplay.textContent = `${defaultEmail.email} (+${otherCount} more)`;
                 emailDisplay.className = 'text-sm text-gray-900 mb-2 font-medium';
             }
         }
-    }
+    };
     
     // Initialize on DOM ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeElements);
-    } else {
-        initializeElements();
+    function initializeOnReady() {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeElements);
+        } else {
+            initializeElements();
+        }
     }
     
     // Handle Enter key
-    document.addEventListener('keypress', function(e) {
+    function handleKeyPress(e) {
         if (e.key === 'Enter' && e.target.id === 'new_email') {
             e.preventDefault();
             EmailModal.addEmail();
+        } else if (e.key === 'Escape' && elements.modal && !elements.modal.classList.contains('hidden')) {
+            EmailModal.close();
         }
-    });
+    }
+    
+    // Handle clicking outside modal
+    function handleModalClick(e) {
+        if (elements.modal && e.target === elements.modal) {
+            EmailModal.close();
+        }
+    }
+    
+    // Initialize
+    initializeOnReady();
+    document.addEventListener('keypress', handleKeyPress);
+    document.addEventListener('click', handleModalClick);
+    
+    // Initialize emails from global data
+    if (window.customerData?.emails) {
+        emails = window.customerData.emails;
+    }
 })();

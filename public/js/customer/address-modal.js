@@ -2,114 +2,186 @@
 (() => {
     'use strict';
     
-    // Cache DOM elements
+    // Cache DOM elements and state
     const elements = {
         modal: null,
         list: null,
-        inputs: {
-            line1: null,
-            line2: null,
-            city: null,
-            state: null,
-            country: null
-        },
-        helpText: null
+        addressLine1: null,
+        addressLine2: null,
+        city: null,
+        state: null,
+        postalCode: null,
+        country: null,
+        helpText: null,
+        modalLoaded: false
     };
+    
+    let addresses = [];
+    
+    // Constants
+    const API_ENDPOINT = '/customer';
+    const MESSAGES = {
+        LOAD_ERROR: 'Failed to load address modal. Please try again.',
+        EMPTY_ADDRESS_LINE1: 'Please enter address line 1',
+        EMPTY_CITY: 'Please enter a city',
+        EMPTY_COUNTRY: 'Please select a country',
+        DUPLICATE_ADDRESS: 'This address already exists'
+    };
+    
+    // Load modal HTML via AJAX
+    async function loadModalHtml() {
+        if (elements.modalLoaded) return;
+        
+        try {
+            const customerId = window.customerData?.id;
+            if (!customerId) throw new Error('Customer ID not found');
+            
+            const response = await fetch(`${API_ENDPOINT}/${customerId}/address-modal`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                },
+                credentials: 'include'
+            });
+            
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(result.message || 'Failed to load modal');
+            }
+            
+            // Append modal HTML to body
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = result.html;
+            const modalElement = tempDiv.firstElementChild;
+            if (modalElement) {
+                document.body.appendChild(modalElement);
+            }
+            
+            // Update addresses data if provided
+            if (result.data?.addresses) {
+                window.customerData.addresses = result.data.addresses;
+                addresses = result.data.addresses;
+            }
+            
+            elements.modalLoaded = true;
+        } catch (error) {
+            console.error('Error loading address modal:', error);
+            alert(MESSAGES.LOAD_ERROR);
+        }
+    }
     
     // Initialize DOM references
     function initializeElements() {
         elements.modal = document.getElementById('addressModal');
         elements.list = document.getElementById('address_list');
-        elements.inputs.line1 = document.getElementById('new_address_line1');
-        elements.inputs.line2 = document.getElementById('new_address_line2');
-        elements.inputs.city = document.getElementById('new_city');
-        elements.inputs.state = document.getElementById('new_state');
-        elements.inputs.country = document.getElementById('new_country');
+        elements.addressLine1 = document.getElementById('new_address_line1');
+        elements.addressLine2 = document.getElementById('new_address_line2');
+        elements.city = document.getElementById('new_city');
+        elements.state = document.getElementById('new_state');
+        elements.postalCode = document.getElementById('new_postal_code');
+        elements.country = document.getElementById('new_country');
         elements.helpText = document.getElementById('addressHelp');
     }
     
     // Address validation
-    function validateAddress(address) {
+    function validateAddress(addressData) {
         const errors = [];
         
-        if (!address.line1?.trim()) errors.push('Address line 1 is required');
-        if (!address.city?.trim()) errors.push('City is required');
-        if (!address.state?.trim()) errors.push('State is required');
-        if (!address.country) errors.push('Country is required');
+        if (!addressData.address_line_1 || addressData.address_line_1.trim() === '') {
+            errors.push(MESSAGES.EMPTY_ADDRESS_LINE1);
+        }
+        
+        if (!addressData.city || addressData.city.trim() === '') {
+            errors.push(MESSAGES.EMPTY_CITY);
+        }
+        
+        if (!addressData.country_id || addressData.country_id === '') {
+            errors.push(MESSAGES.EMPTY_COUNTRY);
+        }
         
         return {
             isValid: errors.length === 0,
-            errors: errors,
-            cleanAddress: {
-                line1: address.line1?.trim() || '',
-                line2: address.line2?.trim() || '',
-                city: address.city?.trim() || '',
-                state: address.state?.trim() || '',
-                country: address.country || ''
-            }
+            errors
         };
     }
     
     // Check for duplicate addresses
-    function isDuplicateAddress(address, excludeIndex = -1) {
-        return addresses.some((addr, index) => 
-            index !== excludeIndex &&
-            addr.line1 === address.line1 &&
-            addr.line2 === address.line2 &&
-            addr.city === address.city &&
-            addr.state === address.state &&
-            addr.country === address.country
+    function isDuplicateAddress(addressData, excludeIndex = -1) {
+        return addresses.some((address, index) => 
+            address.address_line_1 === addressData.address_line_1 &&
+            address.city === addressData.city &&
+            address.state === addressData.state &&
+            address.postal_code === addressData.postal_code &&
+            address.country_id === addressData.country_id &&
+            index !== excludeIndex
         );
     }
     
-    // Create address table row
-    function createAddressRow(address, index) {
-        const row = document.createElement('tr');
-        row.className = 'border-b hover:bg-gray-50 transition-colors';
-        row.setAttribute('role', 'listitem');
-        row.innerHTML = `
-            <td class="py-2 px-2">
+    // Create address item element
+    function createAddressElement(address, index) {
+        const addressDiv = document.createElement('div');
+        addressDiv.className = 'flex items-center justify-between p-3 border rounded-md hover:bg-gray-50 transition-colors';
+        addressDiv.setAttribute('role', 'listitem');
+        
+        const addressText = [
+            address.address_line_1,
+            address.address_line_2,
+            address.city,
+            address.state,
+            address.postal_code,
+            address.country_id ? `Country: ${address.country_id}` : ''
+        ].filter(Boolean).join(', ');
+        
+        addressDiv.innerHTML = `
+            <div class="flex items-center space-x-3 flex-1">
                 <input type="radio" name="default_address_modal" value="${index}" ${address.isDefault ? 'checked' : ''} 
                        class="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500" 
                        onchange="AddressModal.setDefaultAddress(${index})" aria-label="Set as default address">
-            </td>
-            <td class="py-2 px-2">
-                <div class="${address.isDefault ? 'font-medium text-blue-600' : 'text-gray-700'}">
-                    <div>${address.line1}</div>
-                    ${address.line2 ? `<div class="text-xs">${address.line2}</div>` : ''}
-                </div>
-            </td>
-            <td class="py-2 px-2 ${address.isDefault ? 'font-medium text-blue-600' : 'text-gray-700'}">${address.city}</td>
-            <td class="py-2 px-2 ${address.isDefault ? 'font-medium text-blue-600' : 'text-gray-700'}">${address.state}</td>
-            <td class="py-2 px-2 ${address.isDefault ? 'font-medium text-blue-600' : 'text-gray-700'}">${address.country}</td>
-            <td class="py-2 px-2">
-                <div class="flex justify-center space-x-2">
-                    <button onclick="AddressModal.editAddress(${index})" 
-                            class="text-blue-600 hover:text-blue-800 text-xs hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500" 
-                            aria-label="Edit address">Edit</button>
-                    <button onclick="AddressModal.removeAddress(${index})" 
-                            class="text-red-600 hover:text-red-800 text-xs hover:underline focus:outline-none focus:ring-2 focus:ring-red-500" 
-                            aria-label="Delete address">Delete</button>
-                </div>
-            </td>
+                <span class="text-sm ${address.isDefault ? 'font-medium text-blue-600' : 'text-gray-700'}">${addressText}</span>
+                ${address.isDefault ? '<span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full" aria-label="Default address">Default</span>' : ''}
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="AddressModal.editAddress(${index})" 
+                        class="text-blue-600 hover:text-blue-800 text-sm hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                        aria-label="Edit address">Edit</button>
+                <button onclick="AddressModal.removeAddress(${index})" 
+                        class="text-red-600 hover:text-red-800 text-sm hover:underline focus:outline-none focus:ring-2 focus:ring-red-500" 
+                        aria-label="Delete address">Delete</button>
+            </div>
         `;
-        return row;
+        return addressDiv;
+    }
+    
+    // Show error message
+    function showError(errors) {
+        const errorText = errors.join('\n');
+        alert(errorText);
+        elements.addressLine1?.focus();
     }
     
     // Public API
     window.AddressModal = {
-        open() {
+        async open() {
+            await loadModalHtml();
             if (!elements.modal) initializeElements();
             elements.modal.classList.remove('hidden');
             elements.modal.setAttribute('aria-hidden', 'false');
             this.render();
-            elements.inputs.line1.focus();
+            elements.addressLine1?.focus();
         },
         
         close() {
             if (!elements.modal) initializeElements();
             elements.modal.classList.add('hidden');
             elements.modal.setAttribute('aria-hidden', 'true');
+            
+            // Update the main address display when modal closes
+            updateAddressDisplay();
         },
         
         render() {
@@ -121,170 +193,318 @@
                 return;
             }
             
-            // Create table structure
-            const table = document.createElement('table');
-            table.className = 'w-full text-sm';
-            table.innerHTML = `
-                <thead>
-                    <tr class="border-b">
-                        <th class="text-left py-2 px-2">Default</th>
-                        <th class="text-left py-2 px-2">Address</th>
-                        <th class="text-left py-2 px-2">City</th>
-                        <th class="text-left py-2 px-2">State</th>
-                        <th class="text-left py-2 px-2">Country</th>
-                        <th class="text-center py-2 px-2">Actions</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            `;
-            
             // Document fragment for better performance
             const fragment = document.createDocumentFragment();
             addresses.forEach((address, index) => {
-                fragment.appendChild(createAddressRow(address, index));
+                fragment.appendChild(createAddressElement(address, index));
             });
-            elements.list.appendChild(table);
-            table.querySelector('tbody').appendChild(fragment);
+            elements.list.appendChild(fragment);
         },
         
-        setDefaultAddress(index) {
-            addresses.forEach((address, i) => {
-                address.isDefault = i === index;
-            });
-            this.render();
+        async setDefaultAddress(index) {
+            try {
+                const customerId = window.customerData?.id;
+                const address = addresses[index];
+                
+                if (!customerId) throw new Error('Customer ID not found');
+                if (!address.id) throw new Error('Address ID not found');
+                
+                const response = await fetch(`${API_ENDPOINT}/${customerId}/addresses/${address.id}/default`, {
+                    method: 'PUT',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                    },
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.message || 'Failed to update default address');
+                }
+                
+                // Update local state: remove default from all addresses, set new default
+                addresses.forEach((address, i) => {
+                    address.isDefault = i === index;
+                });
+                
+                this.render();
+                
+            } catch (error) {
+                console.error('Error setting default address:', error);
+                showError([error.message || MESSAGES.LOAD_ERROR]);
+                // Revert the radio button selection on error
+                this.render();
+            }
         },
         
-        addAddress() {
-            if (!elements.modal) initializeElements();
+        async addAddress() {
+            if (!elements.addressLine1) initializeElements();
             
-            const address = {
-                line1: elements.inputs.line1.value.trim(),
-                line2: elements.inputs.line2.value.trim(),
-                city: elements.inputs.city.value.trim(),
-                state: elements.inputs.state.value.trim(),
-                country: elements.inputs.country.value
+            const addressData = {
+                address_line_1: elements.addressLine1.value.trim(),
+                address_line_2: elements.addressLine2.value.trim(),
+                city: elements.city.value.trim(),
+                state: elements.state.value.trim(),
+                postal_code: elements.postalCode.value.trim(),
+                country_id: elements.country.value
             };
             
-            const validation = validateAddress(address);
+            const validation = validateAddress(addressData);
             if (!validation.isValid) {
-                alert(validation.errors.join('\\n'));
-                elements.inputs.line1.focus();
+                showError(validation.errors);
                 return;
             }
             
-            if (isDuplicateAddress(address)) {
-                alert('This address already exists');
-                elements.inputs.line1.focus();
+            if (isDuplicateAddress(addressData)) {
+                showError([MESSAGES.DUPLICATE_ADDRESS]);
                 return;
             }
             
-            addresses.push({
-                ...address,
-                isDefault: addresses.length === 0
-            });
+            // Show loading state
+            const button = document.querySelector('button[onclick="AddressModal.addAddress()"]');
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Adding...';
             
-            // Clear form
-            Object.values(elements.inputs).forEach(input => input.value = '');
-            this.render();
+            try {
+                const customerId = window.customerData?.id;
+                if (!customerId) throw new Error('Customer ID not found');
+                
+                const response = await fetch(`${API_ENDPOINT}/${customerId}/addresses`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                    },
+                    body: JSON.stringify(addressData),
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.message || 'Failed to add address');
+                }
+                
+                // Add the new address to the local array
+                addresses.push({
+                    id: result.data.id,
+                    address_line_1: result.data.address_line_1,
+                    address_line_2: result.data.address_line_2,
+                    city: result.data.city,
+                    state: result.data.state,
+                    postal_code: result.data.postal_code,
+                    country_id: result.data.country_id,
+                    isDefault: addresses.length === 0 // First address is default
+                });
+                
+                // Reset form
+                this.resetAddForm();
+                this.render();
+                
+            } catch (error) {
+                console.error('Error adding address:', error);
+                showError([error.message || MESSAGES.LOAD_ERROR]);
+            } finally {
+                // Restore button state
+                button.disabled = false;
+                button.textContent = originalText;
+            }
         },
         
         editAddress(index) {
             const address = addresses[index];
-            if (!elements.modal) initializeElements();
+            if (!elements.addressLine1) initializeElements();
             
-            // Populate form
-            elements.inputs.line1.value = address.line1;
-            elements.inputs.line2.value = address.line2;
-            elements.inputs.city.value = address.city;
-            elements.inputs.state.value = address.state;
-            elements.inputs.country.value = address.country;
+            elements.addressLine1.value = address.address_line_1;
+            elements.addressLine2.value = address.address_line_2 || '';
+            elements.city.value = address.city;
+            elements.state.value = address.state || '';
+            elements.postalCode.value = address.postal_code || '';
+            elements.country.value = address.country_id || '';
             
-            // Update button
-            const addButton = Array.from(elements.list.querySelectorAll('button')).find(btn => 
-                btn.textContent.includes('Add Address')
-            );
-            if (addButton) {
-                addButton.textContent = 'Edit';
-                addButton.setAttribute('onclick', `AddressModal.updateAddress(${index})`);
-                addButton.setAttribute('aria-label', 'Update address');
-            }
+            const button = document.querySelector('button[onclick="AddressModal.addAddress()"]');
+            button.textContent = 'Edit';
+            button.setAttribute('onclick', `AddressModal.updateAddress(${index})`);
+            button.setAttribute('aria-label', 'Update address');
             
-            elements.inputs.line1.focus();
-            elements.inputs.line1.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            elements.addressLine1.focus();
+            elements.addressLine1.scrollIntoView({ behavior: 'smooth', block: 'center' });
         },
         
-        updateAddress(index) {
-            if (!elements.modal) initializeElements();
+        async updateAddress(index) {
+            if (!elements.addressLine1) initializeElements();
             
-            const address = {
-                line1: elements.inputs.line1.value.trim(),
-                line2: elements.inputs.line2.value.trim(),
-                city: elements.inputs.city.value.trim(),
-                state: elements.inputs.state.value.trim(),
-                country: elements.inputs.country.value
+            const addressData = {
+                address_line_1: elements.addressLine1.value.trim(),
+                address_line_2: elements.addressLine2.value.trim(),
+                city: elements.city.value.trim(),
+                state: elements.state.value.trim(),
+                postal_code: elements.postalCode.value.trim(),
+                country_id: elements.country.value
             };
             
-            const validation = validateAddress(address);
+            const validation = validateAddress(addressData);
             if (!validation.isValid) {
-                alert(validation.errors.join('\\n'));
-                elements.inputs.line1.focus();
+                showError(validation.errors);
                 return;
             }
             
-            if (isDuplicateAddress(address, index)) {
-                alert('This address already exists');
-                elements.inputs.line1.focus();
+            if (isDuplicateAddress(addressData, index)) {
+                showError([MESSAGES.DUPLICATE_ADDRESS]);
                 return;
             }
             
-            // Update address
-            addresses[index] = {
-                ...address,
-                isDefault: addresses[index].isDefault
-            };
+            // Show loading state
+            const button = document.querySelector('button[onclick="AddressModal.updateAddress(${index})"]');
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Updating...';
             
-            this.render();
-            
-            // Reset form
-            Object.values(elements.inputs).forEach(input => input.value = '');
-            
-            // Reset button
-            const addButton = Array.from(elements.list.querySelectorAll('button')).find(btn => 
-                btn.textContent.includes('Edit')
-            );
-            if (addButton) {
-                addButton.textContent = '+ Add Address';
-                addButton.setAttribute('onclick', 'AddressModal.addAddress()');
-                addButton.setAttribute('aria-label', 'Add address');
-            }
-        },
-        
-        removeAddress(index) {
-            const wasDefault = addresses[index].isDefault;
-            addresses.splice(index, 1);
-            
-            if (wasDefault && addresses.length > 0) {
-                addresses[0].isDefault = true;
-            }
-            
-            this.render();
-        },
-        
-        save() {
-            const selectedDefault = document.querySelector('input[name="default_address_modal"]:checked');
-            if (selectedDefault) {
-                addresses.forEach((address, index) => {
-                    address.isDefault = index === parseInt(selectedDefault.value);
+            try {
+                const customerId = window.customerData?.id;
+                const address = addresses[index];
+                
+                if (!customerId) throw new Error('Customer ID not found');
+                if (!address.id) throw new Error('Address ID not found');
+                
+                const response = await fetch(`${API_ENDPOINT}/${customerId}/addresses/${address.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                    },
+                    body: JSON.stringify(addressData),
+                    credentials: 'include'
                 });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.message || 'Failed to update address');
+                }
+                
+                // Update the address in the local array
+                addresses[index].address_line_1 = result.data.address_line_1;
+                addresses[index].address_line_2 = result.data.address_line_2;
+                addresses[index].city = result.data.city;
+                addresses[index].state = result.data.state;
+                addresses[index].postal_code = result.data.postal_code;
+                addresses[index].country_id = result.data.country_id;
+                
+                this.render();
+                this.resetAddForm();
+                
+            } catch (error) {
+                console.error('Error updating address:', error);
+                showError([error.message || MESSAGES.LOAD_ERROR]);
+            } finally {
+                // Restore button state
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        },
+        
+        resetAddForm() {
+            if (!elements.addressLine1) return;
+            elements.addressLine1.value = '';
+            elements.addressLine2.value = '';
+            elements.city.value = '';
+            elements.state.value = '';
+            elements.postalCode.value = '';
+            elements.country.value = '';
+            
+            const button = document.querySelector('button[onclick="AddressModal.addAddress()"]');
+            if (button) {
+                button.textContent = '+ Add Address';
+                button.setAttribute('onclick', 'AddressModal.addAddress()');
+                button.setAttribute('aria-label', 'Add address');
+            }
+        },
+        
+        async removeAddress(index) {
+            const address = addresses[index];
+            
+            // Check if trying to delete default address
+            if (address.isDefault) {
+                if (addresses.length <= 1) {
+                    alert('Cannot delete the only address. Please add another address first.');
+                    return;
+                } else {
+                    alert('Cannot delete the default address. Please set another address as default first, then delete this one.');
+                    return;
+                }
             }
             
-            updateAddressDisplay();
-            this.close();
+            // Show confirmation dialog
+            const confirmed = confirm(`Are you sure you want to delete this address?\n${address.address_line_1}\n${address.city}, ${address.state} ${address.postal_code}`);
+            if (!confirmed) {
+                return;
+            }
+            
+            try {
+                const customerId = window.customerData?.id;
+                
+                if (!customerId) throw new Error('Customer ID not found');
+                if (!address.id) throw new Error('Address ID not found');
+                
+                const response = await fetch(`${API_ENDPOINT}/${customerId}/addresses/${address.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                    },
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.message || 'Failed to delete address');
+                }
+                
+                // Remove the address from the local array
+                addresses.splice(index, 1);
+                
+                this.render();
+                
+            } catch (error) {
+                console.error('Error deleting address:', error);
+                showError([error.message || MESSAGES.LOAD_ERROR]);
+            }
         }
     };
     
     // Update address display in main form
-    function updateAddressDisplay() {
+    window.updateAddressDisplay = function() {
         const addressDisplay = document.getElementById('address_display');
         if (!addressDisplay) return;
         
@@ -295,23 +515,63 @@
             const defaultAddress = addresses.find(a => a.isDefault) || addresses[0];
             const otherCount = addresses.length - 1;
             
-            // Format address for display
-            const formattedAddress = `${defaultAddress.line1}${defaultAddress.line2 ? ', ' + defaultAddress.line2 : ''}, ${defaultAddress.city}, ${defaultAddress.state}`;
-            
             if (addresses.length === 1) {
-                addressDisplay.textContent = formattedAddress;
+                const addressText = [
+                    defaultAddress.address_line_1,
+                    defaultAddress.address_line_2,
+                    defaultAddress.city,
+                    defaultAddress.state,
+                    defaultAddress.postal_code
+                ].filter(Boolean).join(', ');
+                addressDisplay.textContent = addressText;
                 addressDisplay.className = 'text-sm text-gray-900 mb-2 font-medium';
             } else {
-                addressDisplay.textContent = `${formattedAddress} (+${otherCount} more)`;
+                const addressText = [
+                    defaultAddress.address_line_1,
+                    defaultAddress.address_line_2,
+                    defaultAddress.city,
+                    defaultAddress.state,
+                    defaultAddress.postal_code
+                ].filter(Boolean).join(', ');
+                addressDisplay.textContent = `${addressText} (+${otherCount} more)`;
                 addressDisplay.className = 'text-sm text-gray-900 mb-2 font-medium';
             }
         }
-    }
+    };
     
     // Initialize on DOM ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeElements);
-    } else {
-        initializeElements();
+    function initializeOnReady() {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeElements);
+        } else {
+            initializeElements();
+        }
+    }
+    
+    // Handle Enter key
+    function handleKeyPress(e) {
+        if (e.key === 'Enter' && e.target.id === 'new_address_line1') {
+            e.preventDefault();
+            AddressModal.addAddress();
+        } else if (e.key === 'Escape' && elements.modal && !elements.modal.classList.contains('hidden')) {
+            AddressModal.close();
+        }
+    }
+    
+    // Handle clicking outside modal
+    function handleModalClick(e) {
+        if (elements.modal && e.target === elements.modal) {
+            AddressModal.close();
+        }
+    }
+    
+    // Initialize
+    initializeOnReady();
+    document.addEventListener('keypress', handleKeyPress);
+    document.addEventListener('click', handleModalClick);
+    
+    // Initialize addresses from global data
+    if (window.customerData?.addresses) {
+        addresses = window.customerData.addresses;
     }
 })();

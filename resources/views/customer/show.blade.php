@@ -68,7 +68,7 @@
                                 <!-- Phone Numbers -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Phone Numbers</label>
-                                    <div id="phone_display" class="text-sm text-gray-600 mb-2">{{ $customer_phone ?? 'No phone numbers added' }}</div>
+                                    <div id="phone_display" class="text-sm text-gray-900 mb-2 font-medium">{{ $customer_phone ?? 'No phone numbers added' }}</div>
                                     <button type="button" onclick="PhoneModal.open()" class="text-blue-600 hover:text-blue-800 hover:underline focus:outline-none focus:text-blue-800 focus:ring-2 focus:ring-blue-500">Manage Phone Numbers</button>
                                 </div>
                             </div>
@@ -78,7 +78,7 @@
                                 <!-- Email Addresses -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Email Addresses</label>
-                                    <div id="email_display" class="text-sm text-gray-600 mb-2">{{ $customer_email ?? 'No email addresses added' }}</div>
+                                    <div id="email_display" class="text-sm text-gray-900 mb-2 font-medium">{{ $customer_email ?? 'No email addresses added' }}</div>
                                     <button type="button" onclick="EmailModal.open()" class="text-sm text-blue-600 hover:text-blue-800 hover:underline focus:outline-none focus:text-blue-800 focus:ring-2 focus:ring-blue-500">Manage Email Addresses</button>
                                 </div>
 
@@ -131,7 +131,6 @@
     <!-- Modals -->
     @include('customer.modals.phone-modal')
     @include('customer.modals.email-modal')
-    @include('customer.modals.address-modal')
 
     <!-- Scripts -->
     <script src="{{ asset('js/customer/phone-modal.js') }}"></script>
@@ -142,7 +141,8 @@
     <script>
         // Global data storage
         window.customerData = {
-            phones: [],
+            id: '{{ $customerId }}',
+            phones: @json($phones ?? []),
             emails: [],
             addresses: []
         };
