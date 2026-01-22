@@ -85,7 +85,7 @@ class CustomerTransformer
             'id' => $customer->id,
             'first_name' => $customer->first_name,
             'last_name' => $customer->last_name,
-            'salutation' => $customer->salutation,
+            'salutation' => $customer->salutation?->value,
             'email' => $customer->emails()->first()?->email,
             'phone' => $customer->phones()->first()?->phone_number,
         ];

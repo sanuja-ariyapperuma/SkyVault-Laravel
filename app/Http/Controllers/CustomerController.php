@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Concerns\ApiResponseTrait;
 use App\Services\CustomerService;
 use App\Services\MetaDataService;
 use App\Http\Requests\StorePhoneRequest;
@@ -10,50 +11,130 @@ use App\Http\Requests\StoreEmailRequest;
 use App\Http\Requests\UpdateEmailRequest;
 use App\Http\Requests\StoreAddressRequest;
 use App\Http\Requests\UpdateAddressRequest;
+use App\Http\Requests\SearchCustomerRequest;
+use App\Http\Requests\CustomerUuidRequest;
+use App\Http\Requests\CustomerPhoneUuidRequest;
+use App\Http\Requests\CustomerEmailUuidRequest;
+use App\Http\Requests\CustomerAddressUuidRequest;
 use Illuminate\Contracts\View\View;
-use Illuminate\Foundation\Validation\ValidatesRequests;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller as BaseController;
-use Illuminate\Support\Str;
 
 class CustomerController extends BaseController
 {
-    use ValidatesRequests;
+    use ApiResponseTrait;
 
     public function __construct(
         private CustomerService $customerService
     ) {}
 
-    public function search(Request $request)
+
+    private function handleStoreOperation(
+        string $customerId,
+        $request,
+        string $serviceMethod,
+        string $successMessage,
+        array $responseFields,
+        string $entityName
+    ): JsonResponse {
+
+        try {
+            $data = $request->validated();
+            $entity = $this->customerService->$serviceMethod($customerId, $data);
+
+            $responseData = [];
+            foreach ($responseFields as $field) {
+                if (str_contains($field, '.')) {
+                    $parts = explode('.', $field);
+                    $responseData[$parts[1]] = $entity->{$parts[0]}->{$parts[1]} ?? null;
+                } else {
+                    $responseData[$field] = $entity->$field;
+                }
+            }
+
+            return $this->successResponse($successMessage, $responseData);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to add ' . $entityName . ': ' . $e->getMessage(), 500);
+        }
+    }
+
+    private function handleUpdateOperation(
+        string $customerId,
+        string $entityId,
+        $request,
+        string $serviceMethod,
+        string $successMessage,
+        array $responseFields,
+        string $entityName
+    ): JsonResponse {
+
+        try {
+            $data = $request->validated();
+            $entity = $this->customerService->$serviceMethod($customerId, $entityId, $data);
+
+            $responseData = [];
+            foreach ($responseFields as $field) {
+                if (str_contains($field, '.')) {
+                    $parts = explode('.', $field);
+                    $responseData[$parts[1]] = $entity->{$parts[0]}->{$parts[1]} ?? null;
+                } else {
+                    $responseData[$field] = $entity->$field;
+                }
+            }
+
+            return $this->successResponse($successMessage, $responseData);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to update ' . $entityName . ': ' . $e->getMessage(), 500);
+        }
+    }
+
+    private function handleDeleteOperation(
+        string $customerId,
+        string $entityId,
+        string $serviceMethod,
+        string $successMessage,
+        string $entityName
+    ): JsonResponse {
+
+        try {
+            $this->customerService->$serviceMethod($customerId, $entityId);
+            return $this->successResponse($successMessage);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to delete ' . $entityName . ': ' . $e->getMessage(), 500);
+        }
+    }
+
+    private function handleSetDefaultOperation(
+        string $customerId,
+        string $entityId,
+        string $serviceMethod,
+        string $successMessage,
+        string $entityName
+    ): JsonResponse {
+
+        try {
+            $this->customerService->$serviceMethod($customerId, $entityId);
+            return $this->successResponse($successMessage);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to update default ' . $entityName . ': ' . $e->getMessage(), 500);
+        }
+    }
+
+    public function search(SearchCustomerRequest $request)
     {
-        $validated = $request->validate([
-            'term' => 'required|string|min:2|max:100'
-        ]);
+        $validated = $request->validated();
 
         try {
             $results = $this->customerService->search($validated['term']);
 
-            return response()->json([
-                'success' => true,
-                'data' => $results,
-                'message' => 'Search completed successfully'
-            ]);
+            return $this->successResponse('Search completed successfully', $results);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'data' => [],
-                'message' => 'Search failed: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Search failed: ' . $e->getMessage(), 500);
         }
     }
 
-    public function show(MetaDataService $metaService, string $customerId): View
+    public function show(CustomerUuidRequest $request, MetaDataService $metaService, string $customerId): View
     {
-        
-        if (empty($customerId) || !Str::isUuid($customerId)) {
-            abort(400, 'Invalid customer ID format');
-        }
 
         $salutations = $metaService->salutations();
         $customerData = $this->customerService->getCustomerShowData($customerId, $salutations);
@@ -65,399 +146,173 @@ class CustomerController extends BaseController
         return view('customer.show', $customerData);
     }
 
-    public function phoneModal(string $customerId): JsonResponse
+    private function loadModalHtml(CustomerUuidRequest $request, string $customerId, string $modalType, string $viewPath, string $dataKey): JsonResponse
     {
-        if (empty($customerId) || !Str::isUuid($customerId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid customer ID format'
-            ], 400);
-        }
 
         try {
             $customerData = $this->customerService->getCustomerShowData($customerId, []);
             
             if (is_null($customerData)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Customer not found'
-                ], 404);
+                return $this->errorResponse('Customer not found', 404);
             }
 
-            $modalHtml = view('customer.modals.phone-modal', $customerData)->render();
+            $modalHtml = view($viewPath, $customerData)->render();
 
-            return response()->json([
-                'success' => true,
-                'html' => $modalHtml,
-                'data' => $customerData
-            ]);
+            return $this->successResponse('', ['html' => $modalHtml, $dataKey => $customerData[$dataKey] ?? []]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to load phone modal: ' . $e->getMessage()
-            ], 500);
+            return $this->errorResponse('Failed to load ' . $modalType . ' modal: ' . $e->getMessage(), 500);
         }
     }
 
-    public function storePhone(StorePhoneRequest $request, string $customerId): JsonResponse
+    public function phoneModal(CustomerUuidRequest $request, string $customerId): JsonResponse
     {
-        if (empty($customerId) || !Str::isUuid($customerId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid customer ID format'
-            ], 400);
-        }
-
-        try {
-            $phoneData = $request->validated();
-            $phone = $this->customerService->addPhone($customerId, $phoneData);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Phone number added successfully',
-                'data' => [
-                    'id' => $phone->id,
-                    'number' => $phone->phone_number,
-                    'isDefault' => $phone->is_default,
-                    'isWhatsapp' => $phone->is_whatsapp
-                ]
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to add phone number: ' . $e->getMessage()
-            ], 500);
-        }
+        return $this->loadModalHtml($request, $customerId, 'phone', 'customer.modals.phone-modal', 'phones');
     }
 
-    public function storeEmail(StoreEmailRequest $request, string $customerId): JsonResponse
+    public function storePhone(StorePhoneRequest $request, CustomerUuidRequest $uuidRequest, string $customerId): JsonResponse
     {
-        if (empty($customerId) || !Str::isUuid($customerId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid customer ID format'
-            ], 400);
-        }
-
-        try {
-            $emailData = $request->validated();
-            $email = $this->customerService->addEmail($customerId, $emailData);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Email address added successfully',
-                'data' => [
-                    'id' => $email->id,
-                    'email' => $email->email
-                ]
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to add email address: ' . $e->getMessage()
-            ], 500);
-        }
+        return $this->handleStoreOperation(
+            $customerId,
+            $request,
+            'addPhone',
+            'Phone number added successfully',
+            ['id', 'number' => 'phone_number', 'isDefault' => 'is_default', 'isWhatsapp' => 'is_whatsapp'],
+            'phone number'
+        );
     }
 
-    public function updatePhone(UpdatePhoneRequest $request, string $customerId, string $phoneId): JsonResponse
+    public function storeEmail(StoreEmailRequest $request, CustomerUuidRequest $uuidRequest, string $customerId): JsonResponse
     {
-        if (empty($customerId) || !Str::isUuid($customerId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid customer ID format'
-            ], 400);
-        }
-
-        if (empty($phoneId) || !Str::isUuid($phoneId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid phone ID format'
-            ], 400);
-        }
-
-        try {
-            $phoneData = $request->validated();
-            $phone = $this->customerService->updatePhone($customerId, $phoneId, $phoneData);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Phone number updated successfully',
-                'data' => [
-                    'id' => $phone->id,
-                    'number' => $phone->phone_number,
-                    'isDefault' => $phone->is_default,
-                    'isWhatsapp' => $phone->is_whatsapp
-                ]
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update phone number: ' . $e->getMessage()
-            ], 500);
-        }
+        return $this->handleStoreOperation(
+            $customerId,
+            $request,
+            'addEmail',
+            'Email address added successfully',
+            ['id', 'email'],
+            'email address'
+        );
     }
 
-    public function storeAddress(StoreAddressRequest $request, string $customerId): JsonResponse
+    public function updatePhone(UpdatePhoneRequest $request, CustomerPhoneUuidRequest $uuidRequest, string $customerId, string $phoneId): JsonResponse
     {
-        if (empty($customerId) || !Str::isUuid($customerId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid customer ID format'
-            ], 400);
-        }
-
-        try {
-            $addressData = $request->validated();
-            $address = $this->customerService->addAddress($customerId, $addressData);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Address added successfully',
-                'data' => [
-                    'id' => $address->id,
-                    'address_line_1' => $address->address_line_1,
-                    'address_line_2' => $address->address_line_2,
-                    'city' => $address->city,
-                    'state' => $address->state,
-                    'postal_code' => $address->postal_code,
-                    'country_id' => $address->country_id,
-                    'country_name' => $address->country->name ?? null,
-                    'isDefault' => $address->is_default ?? false
-                ]
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to add address: ' . $e->getMessage()
-            ], 500);
-        }
+        return $this->handleUpdateOperation(
+            $customerId,
+            $phoneId,
+            $request,
+            'updatePhone',
+            'Phone number updated successfully',
+            ['id', 'number' => 'phone_number', 'isDefault' => 'is_default', 'isWhatsapp' => 'is_whatsapp'],
+            'phone'
+        );
     }
 
-    public function updateAddress(UpdateAddressRequest $request, string $customerId, string $addressId): JsonResponse
+    public function storeAddress(StoreAddressRequest $request, CustomerUuidRequest $uuidRequest, string $customerId): JsonResponse
     {
-        if (empty($customerId) || !Str::isUuid($customerId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid customer ID format'
-            ], 400);
-        }
-
-        if (empty($addressId) || !Str::isUuid($addressId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid address ID format'
-            ], 400);
-        }
-
-        try {
-            $addressData = $request->validated();
-            $address = $this->customerService->updateAddress($customerId, $addressId, $addressData);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Address updated successfully',
-                'data' => [
-                    'id' => $address->id,
-                    'address_line_1' => $address->address_line_1,
-                    'address_line_2' => $address->address_line_2,
-                    'city' => $address->city,
-                    'state' => $address->state,
-                    'postal_code' => $address->postal_code,
-                    'country_id' => $address->country_id,
-                    'country_name' => $address->country->name ?? null,
-                    'isDefault' => $address->is_default ?? false
-                ]
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete address: ' . $e->getMessage()
-            ], 500);
-        }
+        return $this->handleStoreOperation(
+            $customerId,
+            $request,
+            'addAddress',
+            'Address added successfully',
+            [
+                'id',
+                'address_line_1',
+                'address_line_2',
+                'city',
+                'state',
+                'postal_code',
+                'country_id',
+                'country_name' => 'country.name',
+                'isDefault' => 'is_default'
+            ],
+            'address'
+        );
     }
 
-    public function deleteEmail(string $customerId, string $emailId): JsonResponse
+    public function updateAddress(UpdateAddressRequest $request, CustomerAddressUuidRequest $uuidRequest, string $customerId, string $addressId): JsonResponse
     {
-        if (empty($customerId) || !Str::isUuid($customerId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid customer ID format'
-            ], 400);
-        }
-
-        if (empty($emailId) || !Str::isUuid($emailId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid email ID format'
-            ], 400);
-        }
-
-        try {
-            $this->customerService->deleteEmail($customerId, $emailId);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Email address deleted successfully'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete email address: ' . $e->getMessage()
-            ], 500);
-        }
+        return $this->handleUpdateOperation(
+            $customerId,
+            $addressId,
+            $request,
+            'updateAddress',
+            'Address updated successfully',
+            [
+                'id',
+                'address_line_1',
+                'address_line_2',
+                'city',
+                'state',
+                'postal_code',
+                'country_id',
+                'country_name' => 'country.name',
+                'isDefault' => 'is_default'
+            ],
+            'address'
+        );
     }
 
-    public function deletePhone(string $customerId, string $phoneId): JsonResponse
+    public function deleteEmail(CustomerEmailUuidRequest $request, string $customerId, string $emailId): JsonResponse
     {
-        if (empty($customerId) || !Str::isUuid($customerId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid customer ID format'
-            ], 400);
-        }
-
-        try {
-            $this->customerService->deletePhone($customerId, $phoneId);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Phone number deleted successfully'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete phone number: ' . $e->getMessage()
-            ], 500);
-        }
+        return $this->handleDeleteOperation(
+            $customerId,
+            $emailId,
+            'deleteEmail',
+            'Email address deleted successfully',
+            'email address'
+        );
     }
 
-    public function setDefaultPhone(string $customerId, string $phoneId): JsonResponse
+    public function deletePhone(CustomerPhoneUuidRequest $request, string $customerId, string $phoneId): JsonResponse
     {
-        if (empty($customerId) || !Str::isUuid($customerId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid customer ID format'
-            ], 400);
-        }
-
-        if (empty($phoneId) || !Str::isUuid($phoneId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid phone ID format'
-            ], 400);
-        }
-
-        try {
-            $this->customerService->setDefaultPhone($customerId, $phoneId);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Default phone number updated successfully'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update default phone number: ' . $e->getMessage()
-            ], 500);
-        }
+        return $this->handleDeleteOperation(
+            $customerId,
+            $phoneId,
+            'deletePhone',
+            'Phone number deleted successfully',
+            'phone number'
+        );
     }
 
-    public function setDefaultEmail(string $customerId, string $emailId): JsonResponse
+    public function deleteAddress(CustomerAddressUuidRequest $request, string $customerId, string $addressId): JsonResponse
     {
-        if (empty($customerId) || !Str::isUuid($customerId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid customer ID format'
-            ], 400);
-        }
-
-        if (empty($emailId) || !Str::isUuid($emailId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid email ID format'
-            ], 400);
-        }
-
-        try {
-            $this->customerService->setDefaultEmail($customerId, $emailId);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Default email address updated successfully'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update default email address: ' . $e->getMessage()
-            ], 500);
-        }
+        return $this->handleDeleteOperation(
+            $customerId,
+            $addressId,
+            'deleteAddress',
+            'Address deleted successfully',
+            'address'
+        );
     }
 
-    public function emailModal(string $customerId): JsonResponse
+    public function setDefaultPhone(CustomerPhoneUuidRequest $request, string $customerId, string $phoneId): JsonResponse
     {
-        if (empty($customerId) || !Str::isUuid($customerId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid customer ID format'
-            ], 400);
-        }
-
-        try {
-            $customerData = $this->customerService->getCustomerShowData($customerId, []);
-            
-            if (is_null($customerData)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Customer not found'
-                ], 404);
-            }
-
-            $modalHtml = view('customer.modals.email-modal', $customerData)->render();
-
-            return response()->json([
-                'success' => true,
-                'html' => $modalHtml,
-                'data' => $customerData
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to load email modal: ' . $e->getMessage()
-            ], 500);
-        }
+        return $this->handleSetDefaultOperation(
+            $customerId,
+            $phoneId,
+            'setDefaultPhone',
+            'Default phone number updated successfully',
+            'phone number'
+        );
     }
 
-    public function addressModal(string $customerId): JsonResponse
+    public function setDefaultEmail(CustomerEmailUuidRequest $request, string $customerId, string $emailId): JsonResponse
     {
-        if (empty($customerId) || !Str::isUuid($customerId)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid customer ID format'
-            ], 400);
-        }
+        return $this->handleSetDefaultOperation(
+            $customerId,
+            $emailId,
+            'setDefaultEmail',
+            'Default email address updated successfully',
+            'email address'
+        );
+    }
 
-        try {
-            $customerData = $this->customerService->getCustomerShowData($customerId, []);
-            
-            if (is_null($customerData)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Customer not found'
-                ], 404);
-            }
+    public function emailModal(CustomerUuidRequest $request, string $customerId): JsonResponse
+    {
+        return $this->loadModalHtml($request, $customerId, 'email', 'customer.modals.email-modal', 'emails');
+    }
 
-            $modalHtml = view('customer.modals.address-modal', $customerData)->render();
-
-            return response()->json([
-                'success' => true,
-                'html' => $modalHtml,
-                'data' => $customerData
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to load address modal: ' . $e->getMessage()
-            ], 500);
-        }
+    public function addressModal(CustomerUuidRequest $request, string $customerId): JsonResponse
+    {
+        return $this->loadModalHtml($request, $customerId, 'address', 'customer.modals.address-modal', 'addresses');
     }
 }

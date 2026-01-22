@@ -34,9 +34,13 @@
         
         try {
             const customerId = window.customerData?.id;
+            console.log('Loading address modal for customer:', customerId);
             if (!customerId) throw new Error('Customer ID not found');
             
-            const response = await fetch(`${API_ENDPOINT}/${customerId}/address-modal`, {
+            const url = `${API_ENDPOINT}/${customerId}/address-modal`;
+            console.log('Fetching from URL:', url);
+            
+            const response = await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
@@ -46,9 +50,11 @@
                 credentials: 'include'
             });
             
+            console.log('Response status:', response.status);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
             const result = await response.json();
+            console.log('Response result:', result);
             
             if (!result.success) {
                 throw new Error(result.message || 'Failed to load modal');
@@ -56,14 +62,14 @@
             
             // Append modal HTML to body
             const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = result.html;
+            tempDiv.innerHTML = result.data.html;
             const modalElement = tempDiv.firstElementChild;
             if (modalElement) {
                 document.body.appendChild(modalElement);
             }
             
             // Update addresses data if provided
-            if (result.data?.addresses) {
+            if (result.data.addresses) {
                 window.customerData.addresses = result.data.addresses;
                 addresses = result.data.addresses;
             }
@@ -167,12 +173,21 @@
     // Public API
     window.AddressModal = {
         async open() {
-            await loadModalHtml();
-            if (!elements.modal) initializeElements();
-            elements.modal.classList.remove('hidden');
-            elements.modal.setAttribute('aria-hidden', 'false');
-            this.render();
-            elements.addressLine1?.focus();
+            console.log('AddressModal.open() called');
+            try {
+                await loadModalHtml();
+                console.log('loadModalHtml completed');
+                if (!elements.modal) initializeElements();
+                console.log('elements initialized');
+                elements.modal.classList.remove('hidden');
+                elements.modal.setAttribute('aria-hidden', 'false');
+                this.render();
+                elements.addressLine1?.focus();
+                console.log('AddressModal opened successfully');
+            } catch (error) {
+                console.error('Error in AddressModal.open():', error);
+                alert(MESSAGES.LOAD_ERROR);
+            }
         },
         
         close() {

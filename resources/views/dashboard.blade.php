@@ -76,6 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => response.json())
         .then(data => {
+            console.log('Search response:', data);
             if (data.success && data.data.length > 0) {
                 displaySuggestions(data.data);
             } else {
@@ -100,8 +101,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="font-medium text-gray-900"> ${customer.salutation}. ${customer.first_name} ${customer.last_name}</div>
             `;
             
-            suggestionItem.addEventListener('click', function() {
+            suggestionItem.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
                 // Navigate to customer page (adjust route as needed)
+                console.log('Clicked customer:', customer);
+                console.log('Navigating to:', `/customer/${customer.id}`);
                 window.location.href = `/customer/${customer.id}`;
             });
             
