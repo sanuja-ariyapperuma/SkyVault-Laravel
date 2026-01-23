@@ -121,6 +121,38 @@
                             </div>
                         </div>
 
+                        <hr class="my-6 border-gray-200">
+
+                        <!-- Travel Documents Section -->
+                        <div class="space-y-4">
+                            <h4 class="text-md font-medium text-gray-900">Travel Documents</h4>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Passport Information</label>
+                                <div class="flex flex-wrap gap-3">
+                                    <button type="button" onclick="PassportModal.open()" class="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center space-x-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                        </svg>
+                                        <span>Passport</span>
+                                    </button>
+                                    
+                                    <button type="button" onclick="VisaModal.open()" class="px-4 py-2 text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 flex items-center space-x-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path>
+                                        </svg>
+                                        <span>VISA</span>
+                                    </button>
+                                    
+                                    <button type="button" onclick="FrequentFlyerModal.open()" class="px-4 py-2 text-white bg-purple-600 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 flex items-center space-x-2">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                                        </svg>
+                                        <span>Frequent Flyer</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                         
                     </form>
                 </div>
@@ -131,11 +163,15 @@
     <!-- Modals -->
     @include('customer.modals.phone-modal')
     @include('customer.modals.email-modal')
+    @include('customer.modals.address-modal')
 
     <!-- Scripts -->
     <script src="{{ asset('js/customer/phone-modal.js') }}"></script>
     <script src="{{ asset('js/customer/email-modal.js') }}"></script>
     <script src="{{ asset('js/customer/address-modal.js') }}"></script>
+    <script src="{{ asset('js/customer/passport-modal.js') }}"></script>
+    <script src="{{ asset('js/customer/visa-modal.js') }}"></script>
+    <script src="{{ asset('js/customer/frequent-flyer-modal.js') }}"></script>
     
     <!-- Data Initialization -->
     <script>
@@ -155,28 +191,10 @@
         // Initialize modals when DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
-                // Ensure modal APIs are available
-                if (typeof PhoneModal !== 'undefined') {
-                    console.log('Phone modal API loaded');
-                }
-                if (typeof EmailModal !== 'undefined') {
-                    console.log('Email modal API loaded');
-                }
-                if (typeof AddressModal !== 'undefined') {
-                    console.log('Address modal API loaded');
-                }
+                // Modal APIs are available
             });
         } else {
-            // DOM already loaded, initialize immediately
-            if (typeof PhoneModal !== 'undefined') {
-                console.log('Phone modal API loaded');
-            }
-            if (typeof EmailModal !== 'undefined') {
-                console.log('Email modal API loaded');
-            }
-            if (typeof AddressModal !== 'undefined') {
-                console.log('Address modal API loaded');
-            }
+            // DOM already loaded, modal APIs are available
         }
     </script>
 </x-app-layout>

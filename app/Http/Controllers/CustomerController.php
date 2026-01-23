@@ -315,4 +315,19 @@ class CustomerController extends BaseController
     {
         return $this->loadModalHtml($request, $customerId, 'address', 'customer.modals.address-modal', 'addresses');
     }
+
+    public function passportModal(CustomerUuidRequest $request, string $customerId): JsonResponse
+    {
+        return $this->loadModalHtml($request, $customerId, 'passport', 'customer.modals.passport-modal', 'passports');
+    }
+
+    public function visaModal(CustomerUuidRequest $request, string $customerId): JsonResponse
+    {
+        return $this->loadModalHtml($request, $customerId, 'visa', 'customer.modals.visa-modal', 'visas');
+    }
+
+    public function frequentFlyerModal(CustomerUuidRequest $request, string $customerId): JsonResponse
+    {
+        return $this->loadModalHtml($request, $customerId, 'frequent-flyer', 'customer.modals.frequent-flyer-modal', 'frequentFlyers');
+    }
 }
