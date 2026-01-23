@@ -1,4 +1,6 @@
-// Address Modal Module
+// Address Modal Module - This should appear in console if script loads
+console.log('address-modal.js script loaded successfully!');
+
 (() => {
     'use strict';
     
@@ -174,25 +176,75 @@
     window.AddressModal = {
         async open() {
             console.log('AddressModal.open() called');
-            try {
-                await loadModalHtml();
-                console.log('loadModalHtml completed');
-                if (!elements.modal) initializeElements();
-                console.log('elements initialized');
-                elements.modal.classList.remove('hidden');
-                elements.modal.setAttribute('aria-hidden', 'false');
-                this.render();
-                elements.addressLine1?.focus();
-                console.log('AddressModal opened successfully');
-            } catch (error) {
-                console.error('Error in AddressModal.open():', error);
-                alert(MESSAGES.LOAD_ERROR);
+            
+            // Initialize elements if needed
+            if (!elements.modal) {
+                elements.modal = document.getElementById('addressModal');
+                elements.list = document.getElementById('address_list');
+                elements.addressLine1 = document.getElementById('new_address_line1');
+                elements.addressLine2 = document.getElementById('new_address_line2');
+                elements.city = document.getElementById('new_city');
+                elements.state = document.getElementById('new_state');
+                elements.postalCode = document.getElementById('new_postal_code');
+                elements.country = document.getElementById('new_country');
+                elements.helpText = document.getElementById('addressHelp');
             }
+            
+            if (!elements.modal) {
+                console.error('Address modal not found in the DOM');
+                return;
+            }
+            
+            console.log('Opening address modal...');
+            elements.modal.classList.remove('hidden');
+            elements.modal.classList.add('opacity-100');
+            
+            // Animate content
+            const content = document.getElementById('addressModalContent');
+            if (content) {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }
+            
+            // Prevent body scroll
+            document.body.style.overflow = 'hidden';
+            
+            elements.modal.setAttribute('aria-hidden', 'false');
+            this.render();
+            elements.addressLine1?.focus();
+            
+            console.log('AddressModal opened successfully');
         },
         
         close() {
-            if (!elements.modal) initializeElements();
-            elements.modal.classList.add('hidden');
+            console.log('AddressModal.close() called');
+            
+            // Initialize elements if needed
+            if (!elements.modal) {
+                elements.modal = document.getElementById('addressModal');
+            }
+            
+            if (!elements.modal) {
+                console.error('Address modal not found in the DOM');
+                return;
+            }
+            
+            console.log('Closing address modal...');
+            elements.modal.classList.remove('opacity-100');
+            
+            // Animate content
+            const content = document.getElementById('addressModalContent');
+            if (content) {
+                content.classList.remove('scale-100', 'opacity-100');
+                content.classList.add('scale-95', 'opacity-0');
+            }
+            
+            setTimeout(() => {
+                elements.modal.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+                console.log('Address modal closed');
+            }, 300);
+            
             elements.modal.setAttribute('aria-hidden', 'true');
             
             // Update the main address display when modal closes
@@ -589,4 +641,6 @@
     if (window.customerData?.addresses) {
         addresses = window.customerData.addresses;
     }
+    
+    console.log('Full AddressModal object is now available!');
 })();

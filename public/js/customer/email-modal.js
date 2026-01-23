@@ -1,4 +1,6 @@
-// Email Modal Module
+// Email Modal Module - This should appear in console if script loads
+console.log('email-modal.js script loaded successfully!');
+
 (() => {
     'use strict';
     
@@ -133,21 +135,70 @@
     // Public API
     window.EmailModal = {
         async open() {
-            await loadModalHtml();
-            if (!elements.modal) initializeElements();
+            console.log('EmailModal.open() called');
+            
+            // Initialize elements if needed
+            if (!elements.modal) {
+                elements.modal = document.getElementById('emailModal');
+                elements.list = document.getElementById('email_list');
+                elements.input = document.getElementById('new_email');
+                elements.helpText = document.getElementById('emailHelp');
+            }
+            
+            if (!elements.modal) {
+                console.error('Email modal not found in the DOM');
+                return;
+            }
+            
+            console.log('Opening email modal...');
             elements.modal.classList.remove('hidden');
+            elements.modal.classList.add('opacity-100');
+            
+            // Animate content
+            const content = document.getElementById('emailModalContent');
+            if (content) {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }
+            
+            // Prevent body scroll
+            document.body.style.overflow = 'hidden';
+            
             elements.modal.setAttribute('aria-hidden', 'false');
             this.render();
             elements.input?.focus();
         },
         
         close() {
-            if (!elements.modal) initializeElements();
-            elements.modal.classList.add('hidden');
-            elements.modal.setAttribute('aria-hidden', 'true');
+            console.log('EmailModal.close() called');
             
-            // Update the main email display when modal closes
-            updateEmailDisplay();
+            // Initialize elements if needed
+            if (!elements.modal) {
+                elements.modal = document.getElementById('emailModal');
+            }
+            
+            if (!elements.modal) {
+                console.error('Email modal not found in the DOM');
+                return;
+            }
+            
+            console.log('Closing email modal...');
+            elements.modal.classList.remove('opacity-100');
+            
+            // Animate content
+            const content = document.getElementById('emailModalContent');
+            if (content) {
+                content.classList.remove('scale-100', 'opacity-100');
+                content.classList.add('scale-95', 'opacity-0');
+            }
+            
+            setTimeout(() => {
+                elements.modal.classList.add('hidden');
+                document.body.style.overflow = 'auto';
+                console.log('Email modal closed');
+            }, 300);
+            
+            elements.modal.setAttribute('aria-hidden', 'true');
         },
         
         render() {
@@ -493,4 +544,6 @@
     if (window.customerData?.emails) {
         emails = window.customerData.emails;
     }
+    
+    console.log('Full EmailModal object is now available!');
 })();
