@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
         $this->call(CustomerPhoneSeeder::class);
         $this->call(CustomerEmailSeeder::class);
         $this->call(CustomerAddressSeeder::class);
+        $this->call(PassportSeeder::class);
 
         // User::factory()->create([
         //     'name' => 'Test User',
