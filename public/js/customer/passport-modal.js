@@ -1,11 +1,15 @@
 // Modal functionality
 window.PassportModal = {
-    open: function() {
+    open: function(e) {
+        // Prevent default form submission
+        if (e) {
+            e.preventDefault();
+        }
+        
         const modal = document.getElementById('passportModal');
         const content = document.getElementById('passportModalContent');
         
         if (!modal || !content) {
-            console.error('Passport modal not found in the DOM');
             return;
         }
         
@@ -20,12 +24,16 @@ window.PassportModal = {
         document.body.style.overflow = 'hidden';
     },
     
-    close: function() {
+    close: function(e) {
+        // Prevent default form submission
+        if (e) {
+            e.preventDefault();
+        }
+        
         const modal = document.getElementById('passportModal');
         const content = document.getElementById('passportModalContent');
         
         if (!modal || !content) {
-            console.error('Passport modal not found in the DOM');
             return;
         }
         
@@ -43,7 +51,7 @@ window.PassportModal = {
 // Close modal on escape key
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-        PassportModal.close();
+        PassportModal.close(e);
     }
 });
 
@@ -53,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (modal) {
         modal.addEventListener('click', function(e) {
             if (e.target === this) {
-                PassportModal.close();
+                PassportModal.close(e);
             }
         });
     }

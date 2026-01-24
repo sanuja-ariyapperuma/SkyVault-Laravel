@@ -1,5 +1,4 @@
-// Email Modal Module - This should appear in console if script loads
-console.log('email-modal.js script loaded successfully!');
+// Email Modal Module
 
 (() => {
     'use strict';
@@ -110,15 +109,15 @@ console.log('email-modal.js script loaded successfully!');
             <div class="flex items-center space-x-3 flex-1">
                 <input type="radio" name="default_email_modal" value="${index}" ${email.isDefault ? 'checked' : ''} 
                        class="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500" 
-                       onchange="EmailModal.setDefaultEmail(${index})" aria-label="Set as default email address">
+                       onchange="EmailModal.setDefaultEmail(${index}, event)" aria-label="Set as default email address">
                 <span class="text-sm ${email.isDefault ? 'font-medium text-blue-600' : 'text-gray-700'}">${email.email}</span>
                 ${email.isDefault ? '<span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full" aria-label="Default email address">Default</span>' : ''}
             </div>
             <div class="flex items-center space-x-2">
-                <button onclick="EmailModal.editEmail(${index})" 
+                <button onclick="EmailModal.editEmail(${index}, event)" 
                         class="text-blue-600 hover:text-blue-800 text-sm hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500" 
                         aria-label="Edit email address ${email.email}">Edit</button>
-                <button onclick="EmailModal.removeEmail(${index})" 
+                <button onclick="EmailModal.removeEmail(${index}, event)" 
                         class="text-red-600 hover:text-red-800 text-sm hover:underline focus:outline-none focus:ring-2 focus:ring-red-500" 
                         aria-label="Delete email address ${email.email}">Delete</button>
             </div>
@@ -135,8 +134,6 @@ console.log('email-modal.js script loaded successfully!');
     // Public API
     window.EmailModal = {
         async open() {
-            console.log('EmailModal.open() called');
-            
             // Initialize elements if needed
             if (!elements.modal) {
                 elements.modal = document.getElementById('emailModal');
@@ -150,7 +147,6 @@ console.log('email-modal.js script loaded successfully!');
                 return;
             }
             
-            console.log('Opening email modal...');
             elements.modal.classList.remove('hidden');
             elements.modal.classList.add('opacity-100');
             
@@ -170,8 +166,6 @@ console.log('email-modal.js script loaded successfully!');
         },
         
         close() {
-            console.log('EmailModal.close() called');
-            
             // Initialize elements if needed
             if (!elements.modal) {
                 elements.modal = document.getElementById('emailModal');
@@ -182,7 +176,6 @@ console.log('email-modal.js script loaded successfully!');
                 return;
             }
             
-            console.log('Closing email modal...');
             elements.modal.classList.remove('opacity-100');
             
             // Animate content
@@ -195,7 +188,6 @@ console.log('email-modal.js script loaded successfully!');
             setTimeout(() => {
                 elements.modal.classList.add('hidden');
                 document.body.style.overflow = 'auto';
-                console.log('Email modal closed');
             }, 300);
             
             elements.modal.setAttribute('aria-hidden', 'true');
@@ -218,7 +210,12 @@ console.log('email-modal.js script loaded successfully!');
             elements.list.appendChild(fragment);
         },
         
-        async setDefaultEmail(index) {
+        async setDefaultEmail(index, e) {
+            // Prevent default form submission
+            if (e) {
+                e.preventDefault();
+            }
+            
             try {
                 const customerId = window.customerData?.id;
                 const email = emails[index];
@@ -262,7 +259,12 @@ console.log('email-modal.js script loaded successfully!');
             }
         },
         
-        async addEmail() {
+        async addEmail(e) {
+            // Prevent default form submission
+            if (e) {
+                e.preventDefault();
+            }
+            
             if (!elements.input) initializeElements();
             const email = elements.input.value.trim();
             const button = elements.input.nextElementSibling;
@@ -333,7 +335,12 @@ console.log('email-modal.js script loaded successfully!');
             }
         },
         
-        editEmail(index) {
+        editEmail(index, e) {
+            // Prevent default form submission
+            if (e) {
+                e.preventDefault();
+            }
+            
             const email = emails[index];
             if (!elements.input) initializeElements();
             
@@ -341,14 +348,19 @@ console.log('email-modal.js script loaded successfully!');
             
             const button = elements.input.nextElementSibling;
             button.textContent = 'Edit';
-            button.setAttribute('onclick', `EmailModal.updateEmail(${index})`);
+            button.setAttribute('onclick', `EmailModal.updateEmail(${index}, event)`);
             button.setAttribute('aria-label', 'Update email address');
             
             elements.input.focus();
             elements.input.scrollIntoView({ behavior: 'smooth', block: 'center' });
         },
         
-        async updateEmail(index) {
+        async updateEmail(index, e) {
+            // Prevent default form submission
+            if (e) {
+                e.preventDefault();
+            }
+            
             if (!elements.input) initializeElements();
             const email = elements.input.value.trim();
             const button = elements.input.nextElementSibling;
@@ -423,12 +435,17 @@ console.log('email-modal.js script loaded successfully!');
             const button = elements.input.nextElementSibling;
             if (button) {
                 button.textContent = '+ Add';
-                button.setAttribute('onclick', 'EmailModal.addEmail()');
+                button.setAttribute('onclick', 'EmailModal.addEmail(event)');
                 button.setAttribute('aria-label', 'Add email address');
             }
         },
         
-        async removeEmail(index) {
+        async removeEmail(index, e) {
+            // Prevent default form submission
+            if (e) {
+                e.preventDefault();
+            }
+            
             const email = emails[index];
             
             // Check if trying to delete default email
@@ -544,6 +561,4 @@ console.log('email-modal.js script loaded successfully!');
     if (window.customerData?.emails) {
         emails = window.customerData.emails;
     }
-    
-    console.log('Full EmailModal object is now available!');
 })();

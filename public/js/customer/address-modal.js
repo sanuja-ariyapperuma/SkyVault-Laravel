@@ -1,5 +1,4 @@
-// Address Modal Module - This should appear in console if script loads
-console.log('address-modal.js script loaded successfully!');
+// Address Modal Module
 
 (() => {
     'use strict';
@@ -36,11 +35,9 @@ console.log('address-modal.js script loaded successfully!');
         
         try {
             const customerId = window.customerData?.id;
-            console.log('Loading address modal for customer:', customerId);
             if (!customerId) throw new Error('Customer ID not found');
             
             const url = `${API_ENDPOINT}/${customerId}/address-modal`;
-            console.log('Fetching from URL:', url);
             
             const response = await fetch(url, {
                 method: 'GET',
@@ -52,11 +49,9 @@ console.log('address-modal.js script loaded successfully!');
                 credentials: 'include'
             });
             
-            console.log('Response status:', response.status);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
             const result = await response.json();
-            console.log('Response result:', result);
             
             if (!result.success) {
                 throw new Error(result.message || 'Failed to load modal');
@@ -149,15 +144,15 @@ console.log('address-modal.js script loaded successfully!');
             <div class="flex items-center space-x-3 flex-1">
                 <input type="radio" name="default_address_modal" value="${index}" ${address.isDefault ? 'checked' : ''} 
                        class="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500" 
-                       onchange="AddressModal.setDefaultAddress(${index})" aria-label="Set as default address">
+                       onchange="AddressModal.setDefaultAddress(${index}, event)" aria-label="Set as default address">
                 <span class="text-sm ${address.isDefault ? 'font-medium text-blue-600' : 'text-gray-700'}">${addressText}</span>
                 ${address.isDefault ? '<span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full" aria-label="Default address">Default</span>' : ''}
             </div>
             <div class="flex items-center space-x-2">
-                <button onclick="AddressModal.editAddress(${index})" 
+                <button onclick="AddressModal.editAddress(${index}, event)" 
                         class="text-blue-600 hover:text-blue-800 text-sm hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500" 
                         aria-label="Edit address">Edit</button>
-                <button onclick="AddressModal.removeAddress(${index})" 
+                <button onclick="AddressModal.removeAddress(${index}, event)" 
                         class="text-red-600 hover:text-red-800 text-sm hover:underline focus:outline-none focus:ring-2 focus:ring-red-500" 
                         aria-label="Delete address">Delete</button>
             </div>
@@ -175,8 +170,6 @@ console.log('address-modal.js script loaded successfully!');
     // Public API
     window.AddressModal = {
         async open() {
-            console.log('AddressModal.open() called');
-            
             // Initialize elements if needed
             if (!elements.modal) {
                 elements.modal = document.getElementById('addressModal');
@@ -195,7 +188,6 @@ console.log('address-modal.js script loaded successfully!');
                 return;
             }
             
-            console.log('Opening address modal...');
             elements.modal.classList.remove('hidden');
             elements.modal.classList.add('opacity-100');
             
@@ -212,13 +204,9 @@ console.log('address-modal.js script loaded successfully!');
             elements.modal.setAttribute('aria-hidden', 'false');
             this.render();
             elements.addressLine1?.focus();
-            
-            console.log('AddressModal opened successfully');
         },
         
         close() {
-            console.log('AddressModal.close() called');
-            
             // Initialize elements if needed
             if (!elements.modal) {
                 elements.modal = document.getElementById('addressModal');
@@ -229,7 +217,6 @@ console.log('address-modal.js script loaded successfully!');
                 return;
             }
             
-            console.log('Closing address modal...');
             elements.modal.classList.remove('opacity-100');
             
             // Animate content
@@ -242,7 +229,6 @@ console.log('address-modal.js script loaded successfully!');
             setTimeout(() => {
                 elements.modal.classList.add('hidden');
                 document.body.style.overflow = 'auto';
-                console.log('Address modal closed');
             }, 300);
             
             elements.modal.setAttribute('aria-hidden', 'true');
@@ -268,7 +254,12 @@ console.log('address-modal.js script loaded successfully!');
             elements.list.appendChild(fragment);
         },
         
-        async setDefaultAddress(index) {
+        async setDefaultAddress(index, e) {
+            // Prevent default form submission
+            if (e) {
+                e.preventDefault();
+            }
+            
             try {
                 const customerId = window.customerData?.id;
                 const address = addresses[index];
@@ -312,7 +303,12 @@ console.log('address-modal.js script loaded successfully!');
             }
         },
         
-        async addAddress() {
+        async addAddress(e) {
+            // Prevent default form submission
+            if (e) {
+                e.preventDefault();
+            }
+            
             if (!elements.addressLine1) initializeElements();
             
             const addressData = {
@@ -394,7 +390,12 @@ console.log('address-modal.js script loaded successfully!');
             }
         },
         
-        editAddress(index) {
+        editAddress(index, e) {
+            // Prevent default form submission
+            if (e) {
+                e.preventDefault();
+            }
+            
             const address = addresses[index];
             if (!elements.addressLine1) initializeElements();
             
@@ -407,14 +408,19 @@ console.log('address-modal.js script loaded successfully!');
             
             const button = document.querySelector('button[onclick="AddressModal.addAddress()"]');
             button.textContent = 'Edit';
-            button.setAttribute('onclick', `AddressModal.updateAddress(${index})`);
+            button.setAttribute('onclick', `AddressModal.updateAddress(${index}, event)`);
             button.setAttribute('aria-label', 'Update address');
             
             elements.addressLine1.focus();
             elements.addressLine1.scrollIntoView({ behavior: 'smooth', block: 'center' });
         },
         
-        async updateAddress(index) {
+        async updateAddress(index, e) {
+            // Prevent default form submission
+            if (e) {
+                e.preventDefault();
+            }
+            
             if (!elements.addressLine1) initializeElements();
             
             const addressData = {
@@ -506,12 +512,17 @@ console.log('address-modal.js script loaded successfully!');
             const button = document.querySelector('button[onclick="AddressModal.addAddress()"]');
             if (button) {
                 button.textContent = '+ Add Address';
-                button.setAttribute('onclick', 'AddressModal.addAddress()');
+                button.setAttribute('onclick', 'AddressModal.addAddress(event)');
                 button.setAttribute('aria-label', 'Add address');
             }
         },
         
-        async removeAddress(index) {
+        async removeAddress(index, e) {
+            // Prevent default form submission
+            if (e) {
+                e.preventDefault();
+            }
+            
             const address = addresses[index];
             
             // Check if trying to delete default address
@@ -641,6 +652,4 @@ console.log('address-modal.js script loaded successfully!');
     if (window.customerData?.addresses) {
         addresses = window.customerData.addresses;
     }
-    
-    console.log('Full AddressModal object is now available!');
 })();
