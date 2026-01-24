@@ -1,5 +1,4 @@
-// Phone Modal Script - This should appear in console if script loads
-console.log('phone-modal.js script loaded successfully!');
+// Phone Modal Script
 
 // Modal functionality
 window.PhoneModal = {
@@ -7,7 +6,6 @@ window.PhoneModal = {
     
     // Initialize method to ensure everything is ready
     init: function() {
-        console.log('PhoneModal initializing...');
         const modal = document.getElementById('phoneModal');
         const content = document.getElementById('phoneModalContent');
         
@@ -21,13 +19,10 @@ window.PhoneModal = {
             return false;
         }
         
-        console.log('PhoneModal initialized successfully');
         return true;
     },
     
     open: function() {
-        console.log('PhoneModal.open() called');
-        
         // Ensure modal is initialized
         if (!this.init()) {
             console.error('PhoneModal initialization failed');
@@ -42,13 +37,11 @@ window.PhoneModal = {
             return;
         }
         
-        console.log('Opening phone modal...');
         modal.classList.remove('hidden');
         setTimeout(() => {
             modal.classList.add('opacity-100');
             content.classList.remove('scale-95', 'opacity-0');
             content.classList.add('scale-100', 'opacity-100');
-            console.log('Modal animation classes applied');
         }, 10);
         
         // Prevent body scroll
@@ -66,7 +59,6 @@ window.PhoneModal = {
     },
     
     close: function() {
-        console.log('PhoneModal.close() called');
         const modal = document.getElementById('phoneModal');
         const content = document.getElementById('phoneModalContent');
         
@@ -75,7 +67,6 @@ window.PhoneModal = {
             return;
         }
         
-        console.log('Closing phone modal...');
         modal.classList.remove('opacity-100');
         content.classList.remove('scale-100', 'opacity-100');
         content.classList.add('scale-95', 'opacity-0');
@@ -83,7 +74,8 @@ window.PhoneModal = {
         setTimeout(() => {
             modal.classList.add('hidden');
             document.body.style.overflow = 'auto';
-            console.log('Phone modal closed');
+            // Reset button to Add state when modal is closed
+            this.resetAddButton();
         }, 300);
     },
     
@@ -200,10 +192,7 @@ window.PhoneModal = {
                                     Primary
                                 </span>
                             ` : `
-                                <button onclick="PhoneModal.setDefaultPhone(${index})" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 hover:bg-primary-100 hover:text-primary-800 transition-colors">
-                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                                    </svg>
+                                <button onclick="PhoneModal.setDefaultPhone(${index}, event)" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 hover:bg-primary-100 hover:text-primary-800 transition-colors">
                                     Set as Primary
                                 </button>
                             `}
@@ -219,12 +208,12 @@ window.PhoneModal = {
                     </div>
                 </div>
                 <div class="flex items-center space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onclick="PhoneModal.editPhone(${index})" class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" aria-label="Edit phone number">
+                    <button onclick="PhoneModal.editPhone(${index}, event)" class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" aria-label="Edit phone number">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                         </svg>
                     </button>
-                    <button onclick="PhoneModal.removePhone(${index})" class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" aria-label="Delete phone number">
+                    <button onclick="PhoneModal.removePhone(${index}, event)" class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" aria-label="Delete phone number">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                         </svg>
@@ -236,19 +225,25 @@ window.PhoneModal = {
         return phoneDiv;
     },
     
-    addPhone: async function() {
+    addPhone: async function(e) {
+        // Prevent default form submission
+        if (e) {
+            e.preventDefault();
+        }
+        
         const input = document.getElementById('new_phone');
         const whatsappCheckbox = document.getElementById('new_phone_whatsapp');
         
         if (!input || !input.value.trim()) {
-            this.showErrorMessage('Please enter a phone number');
+            toast.error('Please enter a phone number');
             return;
         }
         
         // Simple validation - 10 digits
         const cleanNumber = input.value.replace(/\D/g, '');
+        
         if (cleanNumber.length !== 10) {
-            this.showErrorMessage('Phone number must be exactly 10 digits');
+            toast.error('Phone number must be exactly 10 digits');
             return;
         }
         
@@ -257,8 +252,9 @@ window.PhoneModal = {
         
         // Check for duplicate
         const isDuplicate = this.phones.some(phone => phone.number === formattedNumber);
+        
         if (isDuplicate) {
-            this.showErrorMessage('This phone number already exists');
+            toast.error('This phone number already exists');
             return;
         }
         
@@ -321,15 +317,20 @@ window.PhoneModal = {
             this.render();
             
             // Show success message
-            this.showSuccessMessage('Phone number added successfully!');
+            toast.success('Phone number added successfully!');
             
         } catch (error) {
-            console.error('Error adding phone:', error);
-            this.showErrorMessage(error.message || 'Failed to add phone number');
+            console.error('❌ Error adding phone:', error);
+            toast.error(error.message || 'Failed to add phone number');
         }
     },
     
-    setDefaultPhone: async function(index) {
+    setDefaultPhone: async function(index, e) {
+        // Prevent default form submission
+        if (e) {
+            e.preventDefault();
+        }
+        
         try {
             const phone = this.phones[index];
             const customerId = window.customerData?.id;
@@ -377,22 +378,28 @@ window.PhoneModal = {
             this.render();
             
             // Show success message
-            this.showSuccessMessage('Primary phone number updated!');
+            toast.success('Primary phone number updated!');
             
         } catch (error) {
             console.error('Error setting default phone:', error);
-            this.showErrorMessage(error.message || 'Failed to update primary phone number');
+            toast.error(error.message || 'Failed to update primary phone number');
             // Revert the UI state on error
             this.render();
         }
     },
     
-    editPhone: function(index) {
+    editPhone: function(index, e) {
+        // Prevent default form submission
+        if (e) {
+            e.preventDefault();
+        }
+        
         const phone = this.phones[index];
         const input = document.getElementById('new_phone');
         const whatsappCheckbox = document.getElementById('new_phone_whatsapp');
+        const addButton = document.getElementById('add_phone_button');
         
-        if (!input) return;
+        if (!input || !addButton) return;
         
         // Populate form with phone data
         input.value = phone.number.replace(/\D/g, '');
@@ -400,31 +407,38 @@ window.PhoneModal = {
             whatsappCheckbox.checked = phone.isWhatsapp;
         }
         
-        // Change button to update
-        const addButton = input.nextElementSibling;
-        if (addButton) {
-            addButton.textContent = 'Update';
-            addButton.setAttribute('onclick', `PhoneModal.updatePhone(${index})`);
+        // Change button to Update state
+        const buttonSpan = addButton.querySelector('span');
+        if (buttonSpan) {
+            buttonSpan.textContent = 'Update';
         }
+        
+        // Change the onclick handler to updatePhone
+        addButton.setAttribute('onclick', `PhoneModal.updatePhone(${index}, event)`);
         
         // Focus input
         input.focus();
         input.scrollIntoView({ behavior: 'smooth', block: 'center' });
     },
     
-    updatePhone: function(index) {
+    updatePhone: async function(index, e) {
+        // Prevent default form submission
+        if (e) {
+            e.preventDefault();
+        }
+        
         const input = document.getElementById('new_phone');
         const whatsappCheckbox = document.getElementById('new_phone_whatsapp');
         
         if (!input || !input.value.trim()) {
-            alert('Please enter a phone number');
+            toast.error('Please enter a phone number');
             return;
         }
         
         // Simple validation - 10 digits
         const cleanNumber = input.value.replace(/\D/g, '');
         if (cleanNumber.length !== 10) {
-            alert('Phone number must be exactly 10 digits');
+            toast.error('Phone number must be exactly 10 digits');
             return;
         }
         
@@ -434,36 +448,87 @@ window.PhoneModal = {
         // Check for duplicate (excluding current phone)
         const isDuplicate = this.phones.some((phone, i) => i !== index && phone.number === formattedNumber);
         if (isDuplicate) {
-            alert('This phone number already exists');
+            toast.error('This phone number already exists');
             return;
         }
         
-        // Update phone
-        this.phones[index].number = formattedNumber;
-        this.phones[index].isWhatsapp = whatsappCheckbox ? whatsappCheckbox.checked : false;
-        
-        // Reset form
-        this.resetAddButton();
-        
-        // Re-render
-        this.render();
-        
-        // Show success message
-        this.showSuccessMessage('Phone number updated successfully!');
+        try {
+            const phone = this.phones[index];
+            const customerId = window.customerData?.id;
+            
+            if (!customerId) throw new Error('Customer ID not found');
+            if (!phone.id) throw new Error('Phone ID not found');
+            
+            // Show loading state
+            this.showLoadingMessage('Updating phone number...');
+            
+            // Make API call to update phone
+            const response = await fetch(`/customer/${customerId}/phones/${phone.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                },
+                body: JSON.stringify({
+                    phone_number: cleanNumber,
+                    is_whatsapp: whatsappCheckbox ? whatsappCheckbox.checked : false
+                }),
+                credentials: 'include'
+            });
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `HTTP ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (!result.success) {
+                throw new Error(result.message || 'Failed to update phone number');
+            }
+            
+            // Update phone in local array
+            this.phones[index].number = formattedNumber;
+            this.phones[index].isWhatsapp = whatsappCheckbox ? whatsappCheckbox.checked : false;
+            
+            // Hide loading message
+            this.hideLoadingMessage();
+            
+            // Reset form and button to Add state
+            this.resetAddButton();
+            
+            // Update default phone display and re-render
+            this.updateDefaultPhoneDisplay();
+            this.render();
+            
+            // Show success message
+            toast.success('Phone number updated successfully!');
+            
+        } catch (error) {
+            console.error('Error updating phone:', error);
+            toast.error(error.message || 'Failed to update phone number');
+        }
     },
     
-    removePhone: async function(index) {
+    removePhone: async function(index, e) {
+        // Prevent default form submission
+        if (e) {
+            e.preventDefault();
+        }
+        
         const phone = this.phones[index];
         
         // Don't allow deleting if it's the only phone
         if (this.phones.length === 1) {
-            this.showErrorMessage('Cannot delete the only phone number. Please add another phone number first.');
+            toast.error('Cannot delete the only phone number. Please add another phone number first.');
             return;
         }
         
         // Don't allow deleting default phone if there are other phones
         if (phone.isDefault) {
-            this.showErrorMessage('Cannot delete the primary phone number. Please set another phone number as primary first.');
+            toast.error('Cannot delete the primary phone number. Please set another phone number as primary first.');
             return;
         }
         
@@ -488,7 +553,7 @@ window.PhoneModal = {
                 headers: {
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token']')?.getAttribute('content')
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
                 },
                 credentials: 'include'
             });
@@ -515,28 +580,34 @@ window.PhoneModal = {
             this.render();
             
             // Show success message
-            this.showSuccessMessage('Phone number deleted successfully!');
+            toast.success('Phone number deleted successfully!');
             
         } catch (error) {
             console.error('Error deleting phone:', error);
-            this.showErrorMessage(error.message || 'Failed to delete phone number');
+            toast.error(error.message || 'Failed to delete phone number');
         }
     },
     
     resetAddButton: function() {
         const input = document.getElementById('new_phone');
-        if (!input) return;
+        const addButton = document.getElementById('add_phone_button');
         
-        input.value = '';
+        if (input) {
+            input.value = '';
+        }
+        
         const whatsappCheckbox = document.getElementById('new_phone_whatsapp');
         if (whatsappCheckbox) {
             whatsappCheckbox.checked = false;
         }
         
-        const addButton = input.nextElementSibling;
         if (addButton) {
-            addButton.textContent = 'Add';
-            addButton.setAttribute('onclick', 'PhoneModal.addPhone()');
+            const buttonSpan = addButton.querySelector('span');
+            if (buttonSpan) {
+                buttonSpan.textContent = 'Add';
+            }
+            // Reset the onclick handler
+            addButton.setAttribute('onclick', 'PhoneModal.addPhone(event)');
         }
     },
     
@@ -552,7 +623,7 @@ window.PhoneModal = {
     showSuccessMessage: function(message) {
         // Create a temporary success message
         const successDiv = document.createElement('div');
-        successDiv.className = 'fixed top-4 right-4 bg-success-500 text-white px-4 py-2 rounded-lg shadow-lg z-[10000] animate-slide-up';
+        successDiv.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-[10000] animate-slide-up';
         successDiv.innerHTML = `
             <div class="flex items-center">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -573,7 +644,7 @@ window.PhoneModal = {
     showErrorMessage: function(message) {
         // Create a temporary error message
         const errorDiv = document.createElement('div');
-        errorDiv.className = 'fixed top-4 right-4 bg-danger-500 text-white px-4 py-2 rounded-lg shadow-lg z-[10000] animate-slide-up';
+        errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-[10000] animate-slide-up';
         errorDiv.innerHTML = `
             <div class="flex items-center">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -594,7 +665,7 @@ window.PhoneModal = {
     showLoadingMessage: function(message) {
         // Create a temporary loading message
         const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'fixed top-4 right-4 bg-primary-500 text-white px-4 py-2 rounded-lg shadow-lg z-[10000] animate-slide-up';
+        loadingDiv.className = 'fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg z-[10000] animate-slide-up';
         loadingDiv.innerHTML = `
             <div class="flex items-center">
                 <svg class="w-5 h-5 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -625,22 +696,80 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Close modal on background click
+// Handle Enter key in phone input - only when modal is open and focused
+document.addEventListener('keydown', function(e) {
+    const modal = document.getElementById('phoneModal');
+    const phoneInput = document.getElementById('new_phone');
+    
+    // Only handle Enter key if modal is visible and not hidden
+    if (e.key === 'Enter' && modal && !modal.classList.contains('hidden') && phoneInput && document.activeElement === phoneInput) {
+        e.preventDefault();
+        e.stopPropagation();
+        PhoneModal.addPhone();
+    }
+});
+
+// Close modal on background click - simple and reliable approach
 document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('phoneModal');
+    const modalContent = document.getElementById('phoneModalContent');
+    
     if (modal) {
+        // Track mouse state to detect drag operations
+        let mouseDownOnBackdrop = false;
+        let draggedOutside = false;
+        
+        modal.addEventListener('mousedown', function(e) {
+            // Reset state
+            mouseDownOnBackdrop = false;
+            draggedOutside = false;
+            
+            // Only track if mousedown is on backdrop
+            if (e.target === modal) {
+                mouseDownOnBackdrop = true;
+                
+                // Track if mouse leaves the modal during drag
+                const handleMouseLeave = () => {
+                    draggedOutside = true;
+                };
+                
+                const handleMouseEnter = () => {
+                    draggedOutside = false;
+                };
+                
+                modal.addEventListener('mouseleave', handleMouseLeave);
+                modal.addEventListener('mouseenter', handleMouseEnter);
+                
+                // Clean up listeners on mouseup
+                const cleanup = () => {
+                    modal.removeEventListener('mouseleave', handleMouseLeave);
+                    modal.removeEventListener('mouseenter', handleMouseEnter);
+                    modal.removeEventListener('mouseup', cleanup);
+                };
+                
+                modal.addEventListener('mouseup', cleanup);
+            }
+        });
+        
         modal.addEventListener('click', function(e) {
-            if (e.target === this) {
+            // Close if clicked on backdrop AND didn't drag outside from modal content
+            if (e.target === modal && mouseDownOnBackdrop && !draggedOutside) {
                 PhoneModal.close();
             }
         });
+        
+        // Prevent modal from closing when clicking inside the modal content
+        if (modalContent) {
+            modalContent.addEventListener('mousedown', function(e) {
+                e.stopPropagation();
+                mouseDownOnBackdrop = false;
+            });
+        }
     }
     
     // Initialize PhoneModal when DOM is ready
-    console.log('DOM ready, initializing PhoneModal...');
     if (window.PhoneModal && typeof window.PhoneModal.init === 'function') {
         window.PhoneModal.init();
-        console.log('Full PhoneModal object is now available!');
     } else {
         console.error('PhoneModal not available for initialization');
     }
