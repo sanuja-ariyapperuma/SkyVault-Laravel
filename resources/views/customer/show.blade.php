@@ -272,17 +272,12 @@
         window.customerData = {
             id: '{{ $customerId }}',
             phones: @json($phones ?? []),
-            emails: [],
+            emails: @json($emails ?? []),
             addresses: []
         };
         
         // Wait for all scripts to load before setting up event handlers
         window.addEventListener('load', function() {
-            console.log('All scripts loaded - checking PhoneModal...');
-            console.log('PhoneModal object:', window.PhoneModal);
-            console.log('Modal element:', document.getElementById('phoneModal'));
-            console.log('Modal content element:', document.getElementById('phoneModalContent'));
-            
             // Test if PhoneModal exists and has the full functionality
             if (typeof window.PhoneModal === 'undefined' || !window.PhoneModal.init) {
                 console.error('Full PhoneModal is not defined! Using fallback...');
@@ -290,23 +285,18 @@
                 window.PhoneModal = {
                     phones: [],
                     open: function() {
-                        console.log('Fallback PhoneModal.open() called');
                         const modal = document.getElementById('phoneModal');
                         const content = document.getElementById('phoneModalContent');
-                        console.log('Modal element:', modal);
-                        console.log('Modal content element:', content);
                         
                         if (modal) {
                             // Remove hidden class and add opacity
                             modal.classList.remove('hidden');
                             modal.classList.add('opacity-100');
-                            console.log('Modal classes after show:', modal.className);
                             
                             // Animate content
                             if (content) {
                                 content.classList.remove('scale-95', 'opacity-0');
                                 content.classList.add('scale-100', 'opacity-100');
-                                console.log('Content classes after show:', content.className);
                             }
                             
                             // Prevent body scroll
@@ -316,16 +306,6 @@
                             modal.style.removeProperty('display');
                             modal.style.removeProperty('visibility');
                             modal.style.removeProperty('opacity');
-                            
-                            console.log('Fallback modal opened with animations and proper centering');
-                            
-                            // Check if modal is actually visible
-                            setTimeout(() => {
-                                const rect = modal.getBoundingClientRect();
-                                console.log('Modal dimensions:', rect);
-                                console.log('Modal is visible:', rect.width > 0 && rect.height > 0);
-                                console.log('Modal classes final:', modal.className);
-                            }, 100);
                         } else {
                             alert('Modal not found. Please refresh the page.');
                         }
@@ -350,11 +330,8 @@
                     },
                     render: function() {
                         // Basic render - just show that phones exist
-                        console.log('Fallback render called with phones:', this.phones);
                     }
                 };
-            } else {
-                console.log('Full PhoneModal is available');
             }
             
             // Test if EmailModal exists and has functionality
@@ -364,23 +341,18 @@
                 window.EmailModal = {
                     emails: [],
                     open: function() {
-                        console.log('Fallback EmailModal.open() called');
                         const modal = document.getElementById('emailModal');
                         const content = document.getElementById('emailModalContent');
-                        console.log('Email modal element:', modal);
-                        console.log('Email modal content element:', content);
                         
                         if (modal) {
                             // Remove hidden class and add opacity
                             modal.classList.remove('hidden');
                             modal.classList.add('opacity-100');
-                            console.log('Email modal classes after show:', modal.className);
                             
                             // Animate content
                             if (content) {
                                 content.classList.remove('scale-95', 'opacity-0');
                                 content.classList.add('scale-100', 'opacity-100');
-                                console.log('Email content classes after show:', content.className);
                             }
                             
                             // Prevent body scroll
@@ -390,16 +362,6 @@
                             modal.style.removeProperty('display');
                             modal.style.removeProperty('visibility');
                             modal.style.removeProperty('opacity');
-                            
-                            console.log('Fallback email modal opened with animations and proper centering');
-                            
-                            // Check if modal is actually visible
-                            setTimeout(() => {
-                                const rect = modal.getBoundingClientRect();
-                                console.log('Email modal dimensions:', rect);
-                                console.log('Email modal is visible:', rect.width > 0 && rect.height > 0);
-                                console.log('Email modal classes final:', modal.className);
-                            }, 100);
                         } else {
                             alert('Email modal not found. Please refresh the page.');
                         }
@@ -423,11 +385,9 @@
                         }
                     },
                     render: function() {
-                        console.log('Fallback email render called with emails:', this.emails);
+                        // Basic render - just show that emails exist
                     }
                 };
-            } else {
-                console.log('EmailModal is available');
             }
             
             // Test if AddressModal exists and has functionality
@@ -533,34 +493,17 @@
         function setupEmailModalButton() {
             // Fix button click handler if EmailModal exists
             const emailManageBtn = document.querySelector('button[onclick*="EmailModal.open"]');
-            console.log('Looking for email manage button...');
-            console.log('Email manage button found:', emailManageBtn);
             
             if (emailManageBtn) {
-                console.log('Found email manage button, fixing click handler');
                 emailManageBtn.removeAttribute('onclick');
                 emailManageBtn.addEventListener('click', function(e) {
                     e.preventDefault();
-                    console.log('Email manage button clicked');
-                    console.log('EmailModal object:', window.EmailModal);
-                    console.log('EmailModal.open function:', typeof window.EmailModal?.open);
                     
                     if (window.EmailModal && typeof window.EmailModal.open === 'function') {
-                        console.log('Calling EmailModal.open()');
                         window.EmailModal.open();
                     } else {
                         console.error('EmailModal.open is not available');
                         alert('Email modal is not available. Please refresh the page and try again.');
-                    }
-                });
-            } else {
-                console.log('Email manage button not found');
-                // Try to find any button with "EmailModal" text
-                const allButtons = document.querySelectorAll('button');
-                console.log('All buttons on page:', allButtons.length);
-                allButtons.forEach((btn, index) => {
-                    if (btn.textContent.includes('Manage') && btn.textContent.includes('Email')) {
-                        console.log(`Found potential email button at index ${index}:`, btn);
                     }
                 });
             }

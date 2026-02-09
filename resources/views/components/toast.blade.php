@@ -6,7 +6,7 @@
      x-transition:leave="transition ease-in duration-200"
      x-transition:leave-start="opacity-100 transform translate-y-0"
      x-transition:leave-end="opacity-0 transform translate-y-2"
-     class="fixed top-4 right-4 z-50 max-w-sm w-full"
+     class="fixed top-4 right-4 z-[10000] max-w-sm w-full"
      style="display: none;">
     
     <div class="rounded-lg shadow-lg p-4 mb-2 flex items-center space-x-3"

@@ -193,6 +193,19 @@ class CustomerController extends BaseController
         );
     }
 
+    public function updateEmail(UpdateEmailRequest $request, CustomerEmailUuidRequest $uuidRequest, string $customerId, string $emailId): JsonResponse
+    {
+        return $this->handleUpdateOperation(
+            $customerId,
+            $emailId,
+            $request,
+            'updateEmail',
+            'Email address updated successfully',
+            ['id', 'email'],
+            'email address'
+        );
+    }
+
     public function updatePhone(UpdatePhoneRequest $request, CustomerPhoneUuidRequest $uuidRequest, string $customerId, string $phoneId): JsonResponse
     {
         return $this->handleUpdateOperation(
