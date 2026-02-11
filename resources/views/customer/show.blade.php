@@ -100,7 +100,7 @@
                                 <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                                     <div>
                                         <h4 class="font-medium text-gray-900">Phone Numbers</h4>
-                                        <p class="text-sm text-gray-600 mt-1">{{ $customer_phone ?? 'No phone numbers added' }}</p>
+                                        <p id="main-phone-display" class="text-sm text-gray-600 mt-1">{{ $customer_phone ?? 'No phone numbers added' }}</p>
                                     </div>
                                     <button type="button" onclick="PhoneModal.open()" class="px-4 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors font-medium text-sm">
                                         Manage

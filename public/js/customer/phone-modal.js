@@ -578,6 +578,11 @@ window.PhoneModal = {
             this.updateDefaultPhoneDisplay();
             this.render();
             
+            // Update the main page phone display if this is the first phone (default)
+            if (this.phones.length === 1) {
+                this.updateMainPagePhoneDisplay(newPhone);
+            }
+            
             // Show success message
             toast.success('Phone number added successfully!');
             
@@ -638,6 +643,9 @@ window.PhoneModal = {
             
             // Re-render the phone list
             this.render();
+            
+            // Update the main page phone display
+            this.updateMainPagePhoneDisplay(this.phones[index]);
             
             // Show success message
             toast.success('Primary phone number updated!');
@@ -765,6 +773,11 @@ window.PhoneModal = {
             this.updateDefaultPhoneDisplay();
             this.render();
             
+            // Update the main page phone display if this is the default phone
+            if (this.phones[index].isDefault) {
+                this.updateMainPagePhoneDisplay(this.phones[index]);
+            }
+            
             // Show success message
             toast.success('Phone number updated successfully!');
             
@@ -840,6 +853,18 @@ window.PhoneModal = {
             // Update default phone display and re-render
             this.updateDefaultPhoneDisplay();
             this.render();
+            
+            // Update the main page phone display - find the new default phone
+            const newDefaultPhone = this.phones.find(phone => phone.isDefault);
+            if (newDefaultPhone) {
+                this.updateMainPagePhoneDisplay(newDefaultPhone);
+            } else {
+                // No phones left, update display to show no phones
+                const phoneDisplayElement = document.getElementById('main-phone-display');
+                if (phoneDisplayElement) {
+                    phoneDisplayElement.textContent = 'No phone numbers added';
+                }
+            }
             
             // Show success message
             toast.success('Phone number deleted successfully!');
@@ -947,6 +972,27 @@ window.PhoneModal = {
         if (this.currentLoadingMessage) {
             this.currentLoadingMessage.remove();
             this.currentLoadingMessage = null;
+        }
+    },
+
+    // Update the main page phone display when primary phone changes
+    updateMainPagePhoneDisplay: function(phone) {
+        const phoneDisplayElement = document.getElementById('main-phone-display');
+        
+        if (phoneDisplayElement) {
+            // Debug: log current and target structure
+            console.log('Current phone element HTML:', phoneDisplayElement.innerHTML);
+            console.log('Phone data:', phone);
+            
+            // Format phone number with WhatsApp indicator if applicable
+            let phoneText = phone.number;
+            
+            if (phone.isWhatsapp) {
+                phoneText += ' (WhatsApp)';
+            }
+            
+            console.log('Generated phone text:', phoneText);
+            phoneDisplayElement.textContent = phoneText || 'No phone numbers added';
         }
     }
 };

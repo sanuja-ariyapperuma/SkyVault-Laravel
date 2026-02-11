@@ -14,12 +14,7 @@ class CustomerTransformer
         $phoneDisplay = 'No phone numbers added';
         if ($phoneCount > 0) {
             $defaultPhone = $phones->firstWhere('is_default', true) ?? $phones->first();
-            if ($phoneCount === 1) {
-                $phoneDisplay = $defaultPhone->phone_number;
-            } else {
-                $otherCount = $phoneCount - 1;
-                $phoneDisplay = $defaultPhone->phone_number . ' (+' . $otherCount . ' more)';
-            }
+            $phoneDisplay = $defaultPhone->phone_number;
         }
         
         $emails = $customer->emails()->get();
