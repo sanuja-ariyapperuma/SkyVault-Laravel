@@ -122,7 +122,7 @@
                                 <div class="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                                     <div>
                                         <h4 class="font-medium text-gray-900">Address</h4>
-                                    <div class="text-sm text-gray-600 mt-1">
+                                    <div class="text-sm text-gray-600 mt-1" id="main-address-display">
                                             @if($customer_address)
                                                 {{ $customer_address->address_line_1 }}<br>
                                                 {{ $customer_address->city }}, {{ $customer_address->state }} {{ $customer_address->postal_code }}<br>
@@ -255,14 +255,14 @@
 
     <!-- Modals and Scripts -->
     <!-- Phone modal will be loaded dynamically -->
-    @include('customer.modals.address-modal')
+    <!-- Address modal will be loaded dynamically -->
     @include('customer.modals.passport-modal')
     @include('customer.modals.visa-modal')
     @include('customer.modals.frequent-flyer-modal')
 
     <!-- Phone modal script will be loaded dynamically -->
     <script src="{{ asset('js/customer/email-modal.js') }}"></script>
-    <script src="{{ asset('js/customer/address-modal.js') }}"></script>
+    <!-- Address modal script will be loaded dynamically -->
     <script src="{{ asset('js/customer/passport-modal.js') }}"></script>
     <script src="{{ asset('js/customer/visa-modal.js') }}"></script>
     <script src="{{ asset('js/customer/frequent-flyer-modal.js') }}"></script>
@@ -271,6 +271,8 @@
     <div id="phoneModalContainer"></div>
     <!-- Email modal container for dynamic loading -->
     <div id="emailModalContainer"></div>
+    <!-- Address modal container for dynamic loading -->
+    <div id="addressModalContainer"></div>
     
     <script>
         window.customerData = {
@@ -284,6 +286,8 @@
         window.addEventListener('load', function() {
             // Load phone modal script dynamically
             loadPhoneModalScript();
+            // Load address modal script dynamically
+            loadAddressModalScript();
             
             // Test if EmailModal exists and has functionality
             if (typeof window.EmailModal === 'undefined' || !window.EmailModal.open) {
@@ -293,7 +297,7 @@
                     emails: [],
                     isLoading: false,
                     open: function() {
-                        toast.error('Email modal is currently unavailable. Please refresh the page and try again.');
+                        toast.error('Email modal is currently unavailable. Please try again.');
                     },
                     close: function() {
                         // No-op for fallback
@@ -398,15 +402,29 @@
             document.head.appendChild(script);
         }
         
+        function loadAddressModalScript() {
+            // Load address modal script dynamically
+            const script = document.createElement('script');
+            script.src = '{{ asset("js/customer/address-modal.js") }}';
+            script.onload = function() {
+                setupAddressModalButton();
+            };
+            script.onerror = function() {
+                // Create fallback AddressModal
+                createFallbackAddressModal();
+            };
+            document.head.appendChild(script);
+        }
+        
         function createFallbackPhoneModal() {
             window.PhoneModal = {
                 phones: [],
                 isLoading: false,
                 open: function() {
-                    toast.error('Phone modal is currently unavailable. Please refresh the page and try again.');
-                },
-                close: function() {
-                    // No-op for fallback
+                        toast.error('Phone modal is currently unavailable. Please try again.');
+                    },
+                    close: function() {
+                        // No-op for fallback
                 },
                 loadPhones: function() {
                     // No-op for fallback
@@ -416,6 +434,26 @@
                 }
             };
             setupPhoneModalButton();
+        }
+        
+        function createFallbackAddressModal() {
+            window.AddressModal = {
+                addresses: [],
+                isLoading: false,
+                open: function() {
+                        toast.error('Address modal is currently unavailable. Please try again.');
+                    },
+                    close: function() {
+                        // No-op for fallback
+                },
+                loadAddresses: function() {
+                    // No-op for fallback
+                },
+                render: function() {
+                    // No-op for fallback
+                }
+            };
+            setupAddressModalButton();
         }
         
         function setupPhoneModalButton() {

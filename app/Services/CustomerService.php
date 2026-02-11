@@ -234,6 +234,27 @@ class CustomerService
         $address->delete();
     }
 
+    public function setDefaultAddress(string $customerId, string $addressId): void
+    {
+        $customer = $this->customerDetails($customerId);
+        
+        if (is_null($customer)) {
+            throw new \Exception('Customer not found');
+        }
+
+        $address = $customer->addresses()->where('id', $addressId)->first();
+        
+        if (is_null($address)) {
+            throw new \Exception('Address not found');
+        }
+
+        // Remove default status from all addresses for this customer
+        $customer->addresses()->where('is_default', true)->update(['is_default' => false]);
+        
+        // Set the new default address
+        $address->update(['is_default' => true]);
+    }
+
     public function setDefaultPhone(string $customerId, string $phoneId): void
     {
         $customer = $this->customerDetails($customerId);

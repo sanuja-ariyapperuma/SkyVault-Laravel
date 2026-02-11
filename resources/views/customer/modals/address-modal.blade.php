@@ -1,7 +1,7 @@
 <!-- Addresses Modal -->
-<div id="addressModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm hidden overflow-y-auto h-full w-full z-[9999] transition-opacity duration-300 flex items-center justify-center p-4" role="dialog" aria-labelledby="addressModalTitle" aria-hidden="true">
-    <div class="relative min-h-screen p-4">
-        <div class="relative bg-white rounded-2xl shadow-large max-w-2xl w-full transform transition-all duration-300 scale-95 opacity-0" id="addressModalContent">
+<div id="addressModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm overflow-y-auto h-full w-full z-[9999] transition-opacity duration-300 flex items-start justify-center p-4" role="dialog" aria-labelledby="addressModalTitle" aria-hidden="true">
+    <div class="relative w-full max-w-2xl my-4 p-4">
+        <div class="relative bg-white rounded-2xl shadow-large w-full transform transition-all duration-300 scale-95 opacity-0" id="addressModalContent">
             <!-- Modal Header -->
             <div class="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-white rounded-t-2xl">
                 <div class="flex items-center space-x-3">
@@ -155,16 +155,16 @@
                                         required
                                     >
                                         <option value="">Select Country...</option>
-                                        <option value="US">United States</option>
-                                        <option value="GB">United Kingdom</option>
-                                        <option value="CA">Canada</option>
-                                        <option value="AU">Australia</option>
-                                        <option value="other">Other</option>
+                                        @if(isset($countries))
+                                            @foreach($countries as $countryId => $countryName)
+                                                <option value="{{ $countryId }}">{{ $countryName }}</option>
+                                            @endforeach
+                                        @endif
                                     </select>
                                 </div>
                             </div>
                             
-                            <button onclick="AddressModal.addAddress()" class="px-4 py-2 bg-purple-500 text-white rounded-xl hover:bg-purple-600 transition-colors font-medium flex items-center space-x-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
+                            <button id="add_address_button" onclick="AddressModal.addAddress()" class="px-4 py-2 bg-purple-500 text-white rounded-xl hover:bg-purple-600 transition-colors font-medium flex items-center space-x-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                                 </svg>
@@ -246,12 +246,6 @@
                 <button onclick="if(window.AddressModal)window.AddressModal.close();else document.getElementById('addressModal').classList.add('hidden')" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors font-medium">
                     Close
                 </button>
-                <x-secondary-button class="px-6 py-2">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                    </svg>
-                    Refresh
-                </x-secondary-button>
             </div>
         </div>
     </div>

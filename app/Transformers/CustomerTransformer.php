@@ -44,7 +44,7 @@ class CustomerTransformer
             'customer_salutation' => $customer->salutation,
             'customer_email' => $emailDisplay,
             'customer_phone' => $phoneDisplay,
-            'customer_address' => $customer->addresses()->first(),
+            'customer_address' => $customer->addresses()->where('is_default', true)->first() ?? $customer->addresses()->first(),
             'customer_communication_method' => $customer->communication_method,
             'customer_salutations' => $customer->salutation,
             'customer_staff_member' => $customer->user ? $customer->user->first_name . " " . $customer->user->last_name : null,

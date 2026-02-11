@@ -20,6 +20,7 @@ Route::middleware('auth')->prefix('customer')->group(function () {
     Route::post('/{customerid}/addresses', [CustomerController::class, 'storeAddress'])->name('customer.addresses.store');
     Route::put('/{customerid}/addresses/{addressId}', [CustomerController::class, 'updateAddress'])->name('customer.addresses.update');
     Route::delete('/{customerid}/addresses/{addressId}', [CustomerController::class, 'deleteAddress'])->name('customer.addresses.delete');
+    Route::put('/{customerid}/addresses/{addressId}/default', [CustomerController::class, 'setDefaultAddress'])->name('customer.addresses.set-default');
     Route::get('/{customerid}/passport-modal', [CustomerController::class, 'passportModal'])->name('customer.passport-modal');
     Route::get('/{customerid}/visa-modal', [CustomerController::class, 'visaModal'])->name('customer.visa-modal');
     Route::get('/{customerid}/frequent-flyer-modal', [CustomerController::class, 'frequentFlyerModal'])->name('customer.frequent-flyer-modal');
