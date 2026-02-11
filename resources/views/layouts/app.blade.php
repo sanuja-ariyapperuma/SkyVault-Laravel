@@ -39,10 +39,20 @@
             @include('layouts.navigation')
 
             <!-- Main Content Area -->
-            <div class="flex-1 flex flex-col lg:ml-0">
+            <div class="flex-1 flex flex-col lg:ml-0 min-h-0" 
+                 :class="{
+                     'lg:ml-64': sidebarOpen && window.innerWidth >= 1024,
+                     'lg:ml-16': !sidebarOpen && window.innerWidth >= 1024,
+                     'ml-0': window.innerWidth < 1024
+                 }">
                 <!-- Page Heading -->
                 @isset($header)
-                    <header class="bg-white shadow">
+                    <header class="bg-white shadow fixed top-0 left-0 right-0 z-30 transition-all duration-300"
+                            :class="{
+                                'lg:left-64': sidebarOpen && window.innerWidth >= 1024,
+                                'lg:left-16': !sidebarOpen && window.innerWidth >= 1024,
+                                'left-0': window.innerWidth < 1024
+                            }">
                         <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
                             {{ $header }}
                         </div>
@@ -50,7 +60,7 @@
                 @endisset
 
                 <!-- Page Content -->
-                <main class="flex-1">
+                <main class="flex-1 overflow-y-auto @isset($header) mt-20 @endisset">
                     {{ $slot }}
                 </main>
             </div>

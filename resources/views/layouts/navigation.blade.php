@@ -1,5 +1,6 @@
-<nav class="bg-white shadow-large border-r border-gray-100 transition-all duration-300 ease-in-out fixed lg:relative h-screen z-40 lg:z-auto flex flex-col"
+<nav class="bg-white shadow-large border-r border-gray-100 transition-all duration-300 ease-in-out h-screen z-40 lg:z-auto flex flex-col"
     :class="{
+        'fixed': true,
         'w-64': sidebarOpen && window.innerWidth >= 1024, 
         'w-16': !sidebarOpen && window.innerWidth >= 1024, 
         'w-80 inset-0': sidebarOpen && window.innerWidth < 1024,
