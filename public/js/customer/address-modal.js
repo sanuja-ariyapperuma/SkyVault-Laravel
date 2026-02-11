@@ -1093,63 +1093,17 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Close modal on background click - simple and reliable approach
-document.addEventListener('DOMContentLoaded', function() {
+// Handle clicking outside modal - simple approach like email modal
+function handleModalClick(e) {
     const modal = document.getElementById('addressModal');
-    const modalContent = document.getElementById('addressModalContent');
-    
-    if (modal) {
-        // Track mouse state to detect drag operations
-        let mouseDownOnBackdrop = false;
-        let draggedOutside = false;
-        
-        modal.addEventListener('mousedown', function(e) {
-            // Reset state
-            mouseDownOnBackdrop = false;
-            draggedOutside = false;
-            
-            // Only track if mousedown is on backdrop
-            if (e.target === modal) {
-                mouseDownOnBackdrop = true;
-                
-                // Track if mouse leaves the modal during drag
-                const handleMouseLeave = () => {
-                    draggedOutside = true;
-                };
-                
-                const handleMouseEnter = () => {
-                    draggedOutside = false;
-                };
-                
-                modal.addEventListener('mouseleave', handleMouseLeave);
-                modal.addEventListener('mouseenter', handleMouseEnter);
-                
-                // Clean up listeners on mouseup
-                const cleanup = () => {
-                    modal.removeEventListener('mouseleave', handleMouseLeave);
-                    modal.removeEventListener('mouseenter', handleMouseEnter);
-                    modal.removeEventListener('mouseup', cleanup);
-                };
-                
-                modal.addEventListener('mouseup', cleanup);
-            }
-        });
-        
-        modal.addEventListener('click', function(e) {
-            // Close if clicked on backdrop AND didn't drag outside from modal content
-            if (e.target === modal && mouseDownOnBackdrop && !draggedOutside) {
-                AddressModal.close();
-            }
-        });
-        
-        // Prevent modal from closing when clicking inside the modal content
-        if (modalContent) {
-            modalContent.addEventListener('mousedown', function(e) {
-                e.stopPropagation();
-                mouseDownOnBackdrop = false;
-            });
-        }
+    if (modal && e.target === modal) {
+        AddressModal.close();
     }
+}
+
+// Initialize event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('click', handleModalClick);
     
     // Initialize AddressModal when DOM is ready
     if (window.AddressModal && typeof window.AddressModal.init === 'function') {

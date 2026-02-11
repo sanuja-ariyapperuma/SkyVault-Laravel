@@ -939,13 +939,6 @@
         }
     }
     
-    // Handle clicking outside modal
-    function handleModalClick(e) {
-        if (elements.modal && e.target === elements.modal) {
-            EmailModal.close();
-        }
-    }
-    
     // Initialize emails from global data
     function initializeEmails() {
         if (window.customerData?.emails) {
@@ -958,7 +951,6 @@
     // Initialize
     initializeOnReady();
     document.addEventListener('keypress', handleKeyPress);
-    document.addEventListener('click', handleModalClick);
     
     // Initialize emails from global data
     initializeEmails();
