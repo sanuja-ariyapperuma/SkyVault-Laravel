@@ -256,14 +256,14 @@
     <!-- Modals and Scripts -->
     <!-- Phone modal will be loaded dynamically -->
     <!-- Address modal will be loaded dynamically -->
-    @include('customer.modals.passport-modal')
+    <!-- Passport modal will be loaded dynamically -->
     @include('customer.modals.visa-modal')
     @include('customer.modals.frequent-flyer-modal')
 
     <!-- Phone modal script will be loaded dynamically -->
     <script src="{{ asset('js/customer/email-modal.js') }}"></script>
     <!-- Address modal script will be loaded dynamically -->
-    <script src="{{ asset('js/customer/passport-modal.js') }}"></script>
+    <!-- Passport modal script will be loaded dynamically -->
     <script src="{{ asset('js/customer/visa-modal.js') }}"></script>
     <script src="{{ asset('js/customer/frequent-flyer-modal.js') }}"></script>
     
@@ -273,13 +273,16 @@
     <div id="emailModalContainer"></div>
     <!-- Address modal container for dynamic loading -->
     <div id="addressModalContainer"></div>
+    <!-- Passport modal container for dynamic loading -->
+    <div id="passportModalContainer"></div>
     
     <script>
         window.customerData = {
             id: '{{ $customerId }}',
             phones: [], // Will be loaded dynamically
             emails: [], // Will be loaded dynamically
-            addresses: []
+            addresses: [],
+            passports: [] // Will be loaded dynamically
         };
         
         // Wait for all scripts to load before setting up event handlers
@@ -288,6 +291,8 @@
             loadPhoneModalScript();
             // Load address modal script dynamically
             loadAddressModalScript();
+            // Load passport modal script dynamically
+            loadPassportModalScript();
             
             // Test if EmailModal exists and has functionality
             if (typeof window.EmailModal === 'undefined' || !window.EmailModal.open) {
@@ -416,6 +421,20 @@
             document.head.appendChild(script);
         }
         
+        function loadPassportModalScript() {
+            // Load passport modal script dynamically
+            const script = document.createElement('script');
+            script.src = '{{ asset("js/customer/passport-modal.js") }}';
+            script.onload = function() {
+                setupPassportModalButton();
+            };
+            script.onerror = function() {
+                // Create fallback PassportModal
+                createFallbackPassportModal();
+            };
+            document.head.appendChild(script);
+        }
+        
         function createFallbackPhoneModal() {
             window.PhoneModal = {
                 phones: [],
@@ -454,6 +473,26 @@
                 }
             };
             setupAddressModalButton();
+        }
+        
+        function createFallbackPassportModal() {
+            window.PassportModal = {
+                passports: [],
+                isLoading: false,
+                open: function() {
+                    toast.error('Passport modal is currently unavailable. Please try again.');
+                },
+                close: function() {
+                    // No-op for fallback
+                },
+                loadPassports: function() {
+                    // No-op for fallback
+                },
+                render: function() {
+                    // No-op for fallback
+                }
+            };
+            setupPassportModalButton();
         }
         
         function setupPhoneModalButton() {
@@ -521,6 +560,22 @@
                 allButtons.forEach((btn, index) => {
                     if (btn.textContent.includes('Manage') && btn.textContent.includes('Address')) {
                         console.log(`Found potential address button at index ${index}:`, btn);
+                    }
+                });
+            }
+        }
+        
+        function setupPassportModalButton() {
+            // Fix button click handler if PassportModal exists
+            const passportManageBtn = document.querySelector('button[onclick*="PassportModal.open"]');
+            if (passportManageBtn) {
+                passportManageBtn.removeAttribute('onclick');
+                passportManageBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (window.PassportModal && typeof window.PassportModal.open === 'function') {
+                        window.PassportModal.open();
+                    } else {
+                        toast.error('Passport modal is not available. Please refresh the page and try again.');
                     }
                 });
             }
