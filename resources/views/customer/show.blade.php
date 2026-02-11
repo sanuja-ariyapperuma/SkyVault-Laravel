@@ -112,7 +112,7 @@
                                         <h4 class="font-medium text-gray-900">Email Addresses</h4>
                                         <p class="text-sm text-gray-600 mt-1">{{ $customer_email ?? 'No email addresses added' }}</p>
                                     </div>
-                                    <button type="button" onclick="EmailModal.open()" class="px-4 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors font-medium text-sm">
+                                    <button type="button" class="email-manage-btn px-4 py-2 bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors font-medium text-sm">
                                         Manage
                                     </button>
                                 </div>
@@ -255,7 +255,6 @@
 
     <!-- Modals and Scripts -->
     <!-- Phone modal will be loaded dynamically -->
-    @include('customer.modals.email-modal')
     @include('customer.modals.address-modal')
     @include('customer.modals.passport-modal')
     @include('customer.modals.visa-modal')
@@ -270,12 +269,14 @@
     
     <!-- Phone modal container for dynamic loading -->
     <div id="phoneModalContainer"></div>
+    <!-- Email modal container for dynamic loading -->
+    <div id="emailModalContainer"></div>
     
     <script>
         window.customerData = {
             id: '{{ $customerId }}',
             phones: [], // Will be loaded dynamically
-            emails: @json($emails ?? []),
+            emails: [], // Will be loaded dynamically
             addresses: []
         };
         
@@ -290,52 +291,18 @@
                 // Create fallback EmailModal
                 window.EmailModal = {
                     emails: [],
+                    isLoading: false,
                     open: function() {
-                        const modal = document.getElementById('emailModal');
-                        const content = document.getElementById('emailModalContent');
-                        
-                        if (modal) {
-                            // Remove hidden class and add opacity
-                            modal.classList.remove('hidden');
-                            modal.classList.add('opacity-100');
-                            
-                            // Animate content
-                            if (content) {
-                                content.classList.remove('scale-95', 'opacity-0');
-                                content.classList.add('scale-100', 'opacity-100');
-                            }
-                            
-                            // Prevent body scroll
-                            document.body.style.overflow = 'hidden';
-                            
-                            // Ensure proper centering by removing any conflicting styles
-                            modal.style.removeProperty('display');
-                            modal.style.removeProperty('visibility');
-                            modal.style.removeProperty('opacity');
-                        } else {
-                            alert('Email modal not found. Please refresh the page.');
-                        }
+                        toast.error('Email modal is currently unavailable. Please refresh the page and try again.');
                     },
                     close: function() {
-                        const modal = document.getElementById('emailModal');
-                        const content = document.getElementById('emailModalContent');
-                        if (modal) {
-                            modal.classList.add('hidden');
-                            modal.classList.remove('opacity-100');
-                            if (content) {
-                                content.classList.add('scale-95', 'opacity-0');
-                                content.classList.remove('scale-100', 'opacity-100');
-                            }
-                            document.body.style.overflow = 'auto';
-                        }
+                        // No-op for fallback
                     },
                     loadEmails: function() {
-                        if (window.customerData && window.customerData.emails) {
-                            this.emails = window.customerData.emails;
-                        }
+                        // No-op for fallback
                     },
                     render: function() {
-                        // Basic render - just show that emails exist
+                        // No-op for fallback
                     }
                 };
             }
@@ -469,10 +436,9 @@
         
         function setupEmailModalButton() {
             // Fix button click handler if EmailModal exists
-            const emailManageBtn = document.querySelector('button[onclick*="EmailModal.open"]');
+            const emailManageBtn = document.querySelector('.email-manage-btn');
             
             if (emailManageBtn) {
-                emailManageBtn.removeAttribute('onclick');
                 emailManageBtn.addEventListener('click', function(e) {
                     e.preventDefault();
                     
@@ -480,7 +446,7 @@
                         window.EmailModal.open();
                     } else {
                         console.error('EmailModal.open is not available');
-                        alert('Email modal is not available. Please refresh the page and try again.');
+                        toast.error('Email modal is not available. Please refresh the page and try again.');
                     }
                 });
             }

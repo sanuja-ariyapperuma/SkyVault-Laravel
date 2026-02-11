@@ -1,5 +1,8 @@
 <!-- Email Addresses Modal -->
 <div id="emailModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 backdrop-blur-sm hidden overflow-y-auto h-full w-full z-[9999] transition-opacity duration-300 flex items-center justify-center p-4" role="dialog" aria-labelledby="emailModalTitle" aria-hidden="true">
+    <!-- Toast Component -->
+    <x-toast />
+    
     <div class="relative min-h-screen p-4">
         <div class="relative bg-white rounded-2xl shadow-large max-w-2xl w-full transform transition-all duration-300 scale-95 opacity-0" id="emailModalContent">
             <!-- Modal Header -->
