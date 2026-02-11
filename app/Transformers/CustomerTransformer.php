@@ -23,12 +23,7 @@ class CustomerTransformer
         $emailDisplay = 'No email addresses added';
         if ($emailCount > 0) {
             $defaultEmail = $emails->firstWhere('is_default', true) ?? $emails->first();
-            if ($emailCount === 1) {
-                $emailDisplay = $defaultEmail->email;
-            } else {
-                $otherCount = $emailCount - 1;
-                $emailDisplay = $defaultEmail->email . ' (+' . $otherCount . ' more)';
-            }
+            $emailDisplay = $defaultEmail->email;
         }
         
         return [

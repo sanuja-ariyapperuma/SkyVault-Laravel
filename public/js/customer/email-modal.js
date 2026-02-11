@@ -553,6 +553,11 @@
             
             // Update default email display
             updateDefaultEmailDisplay();
+            
+            // Update the email display in the main view
+            if (typeof window.updateEmailDisplay === 'function') {
+                window.updateEmailDisplay();
+            }
         },
         
         async setDefaultEmail(index, e) {
@@ -596,6 +601,11 @@
                 
                 this.render();
                 showSuccess('Default email address updated successfully');
+                
+                // Update the email display in the main view
+                if (typeof window.updateEmailDisplay === 'function') {
+                    window.updateEmailDisplay();
+                }
                 
             } catch (error) {
                 console.error('Error setting default email:', error);
@@ -678,6 +688,11 @@
                 elements.input.value = '';
                 this.render();
                 showSuccess('Email address added successfully');
+                
+                // Update the email display in the main view
+                if (typeof window.updateEmailDisplay === 'function') {
+                    window.updateEmailDisplay();
+                }
                 
             } catch (error) {
                 console.error('Error adding email:', error);
@@ -787,6 +802,11 @@
                 this.resetAddButton();
                 showSuccess('Email address updated successfully');
                 
+                // Update the email display in the main view
+                if (typeof window.updateEmailDisplay === 'function') {
+                    window.updateEmailDisplay();
+                }
+                
             } catch (error) {
                 console.error('Error updating email:', error);
                 showError(error.message || MESSAGES.LOAD_ERROR);
@@ -872,6 +892,11 @@
                 this.render();
                 showSuccess('Email address deleted successfully');
                 
+                // Update the email display in the main view
+                if (typeof window.updateEmailDisplay === 'function') {
+                    window.updateEmailDisplay();
+                }
+                
             } catch (error) {
                 console.error('Error deleting email:', error);
                 showError(error.message || MESSAGES.LOAD_ERROR);
@@ -889,15 +914,9 @@
             emailDisplay.className = 'text-sm text-gray-600 mb-2';
         } else {
             const defaultEmail = emails.find(e => e.isDefault) || emails[0];
-            const otherCount = emails.length - 1;
             
-            if (emails.length === 1) {
-                emailDisplay.textContent = defaultEmail.email;
-                emailDisplay.className = 'text-sm text-gray-900 mb-2 font-medium';
-            } else {
-                emailDisplay.textContent = `${defaultEmail.email} (+${otherCount} more)`;
-                emailDisplay.className = 'text-sm text-gray-900 mb-2 font-medium';
-            }
+            emailDisplay.textContent = defaultEmail.email;
+            emailDisplay.className = 'text-sm text-gray-900 mb-2 font-medium';
         }
     };
     
