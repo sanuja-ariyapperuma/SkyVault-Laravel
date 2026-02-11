@@ -254,85 +254,35 @@
     </div>
 
     <!-- Modals and Scripts -->
-    @include('customer.modals.phone-modal')
+    <!-- Phone modal will be loaded dynamically -->
     @include('customer.modals.email-modal')
     @include('customer.modals.address-modal')
     @include('customer.modals.passport-modal')
     @include('customer.modals.visa-modal')
     @include('customer.modals.frequent-flyer-modal')
 
-    <script src="{{ asset('js/customer/phone-modal.js') }}"></script>
+    <!-- Phone modal script will be loaded dynamically -->
     <script src="{{ asset('js/customer/email-modal.js') }}"></script>
     <script src="{{ asset('js/customer/address-modal.js') }}"></script>
     <script src="{{ asset('js/customer/passport-modal.js') }}"></script>
     <script src="{{ asset('js/customer/visa-modal.js') }}"></script>
     <script src="{{ asset('js/customer/frequent-flyer-modal.js') }}"></script>
     
+    <!-- Phone modal container for dynamic loading -->
+    <div id="phoneModalContainer"></div>
+    
     <script>
         window.customerData = {
             id: '{{ $customerId }}',
-            phones: @json($phones ?? []),
+            phones: [], // Will be loaded dynamically
             emails: @json($emails ?? []),
             addresses: []
         };
         
         // Wait for all scripts to load before setting up event handlers
         window.addEventListener('load', function() {
-            // Test if PhoneModal exists and has the full functionality
-            if (typeof window.PhoneModal === 'undefined' || !window.PhoneModal.init) {
-                console.error('Full PhoneModal is not defined! Using fallback...');
-                // Create fallback PhoneModal
-                window.PhoneModal = {
-                    phones: [],
-                    open: function() {
-                        const modal = document.getElementById('phoneModal');
-                        const content = document.getElementById('phoneModalContent');
-                        
-                        if (modal) {
-                            // Remove hidden class and add opacity
-                            modal.classList.remove('hidden');
-                            modal.classList.add('opacity-100');
-                            
-                            // Animate content
-                            if (content) {
-                                content.classList.remove('scale-95', 'opacity-0');
-                                content.classList.add('scale-100', 'opacity-100');
-                            }
-                            
-                            // Prevent body scroll
-                            document.body.style.overflow = 'hidden';
-                            
-                            // Ensure proper centering by removing any conflicting styles
-                            modal.style.removeProperty('display');
-                            modal.style.removeProperty('visibility');
-                            modal.style.removeProperty('opacity');
-                        } else {
-                            alert('Modal not found. Please refresh the page.');
-                        }
-                    },
-                    close: function() {
-                        const modal = document.getElementById('phoneModal');
-                        const content = document.getElementById('phoneModalContent');
-                        if (modal) {
-                            modal.classList.add('hidden');
-                            modal.classList.remove('opacity-100');
-                            if (content) {
-                                content.classList.add('scale-95', 'opacity-0');
-                                content.classList.remove('scale-100', 'opacity-100');
-                            }
-                            document.body.style.overflow = 'auto';
-                        }
-                    },
-                    loadPhones: function() {
-                        if (window.customerData && window.customerData.phones) {
-                            this.phones = window.customerData.phones;
-                        }
-                    },
-                    render: function() {
-                        // Basic render - just show that phones exist
-                    }
-                };
-            }
+            // Load phone modal script dynamically
+            loadPhoneModalScript();
             
             // Test if EmailModal exists and has functionality
             if (typeof window.EmailModal === 'undefined' || !window.EmailModal.open) {
@@ -463,30 +413,57 @@
                 console.log('AddressModal is available');
             }
             
-            setupPhoneModalButton();
             setupEmailModalButton();
             setupAddressModalButton();
         });
+        
+        function loadPhoneModalScript() {
+            // Load phone modal script dynamically
+            const script = document.createElement('script');
+            script.src = '{{ asset("js/customer/phone-modal.js") }}';
+            script.onload = function() {
+                setupPhoneModalButton();
+            };
+            script.onerror = function() {
+                // Create fallback PhoneModal
+                createFallbackPhoneModal();
+            };
+            document.head.appendChild(script);
+        }
+        
+        function createFallbackPhoneModal() {
+            window.PhoneModal = {
+                phones: [],
+                isLoading: false,
+                open: function() {
+                    toast.error('Phone modal is currently unavailable. Please refresh the page and try again.');
+                },
+                close: function() {
+                    // No-op for fallback
+                },
+                loadPhones: function() {
+                    // No-op for fallback
+                },
+                render: function() {
+                    // No-op for fallback
+                }
+            };
+            setupPhoneModalButton();
+        }
         
         function setupPhoneModalButton() {
             // Fix button click handler if PhoneModal exists
             const phoneManageBtn = document.querySelector('button[onclick*="PhoneModal.open"]');
             if (phoneManageBtn) {
-                console.log('Found phone manage button, fixing click handler');
                 phoneManageBtn.removeAttribute('onclick');
                 phoneManageBtn.addEventListener('click', function(e) {
                     e.preventDefault();
-                    console.log('Phone manage button clicked');
                     if (window.PhoneModal && typeof window.PhoneModal.open === 'function') {
-                        console.log('Calling PhoneModal.open()');
                         window.PhoneModal.open();
                     } else {
-                        console.error('PhoneModal.open is not available');
-                        alert('Phone modal is not available. Please refresh the page and try again.');
+                        toast.error('Phone modal is not available. Please refresh the page and try again.');
                     }
                 });
-            } else {
-                console.log('Phone manage button not found');
             }
         }
         
