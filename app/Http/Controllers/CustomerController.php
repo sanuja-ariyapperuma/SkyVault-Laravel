@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Http\Controllers\Concerns\ApiResponseTrait;
 use App\Services\CustomerService;
 use App\Services\MetaDataService;
+use App\Http\Requests\CustomerAddressUuidRequest;
+use App\Http\Requests\CustomerEmailUuidRequest;
+use App\Http\Requests\CustomerPhoneUuidRequest;
 use App\Http\Requests\StorePhoneRequest;
 use App\Http\Requests\UpdatePhoneRequest;
 use App\Http\Requests\StoreEmailRequest;
@@ -13,9 +16,6 @@ use App\Http\Requests\StoreAddressRequest;
 use App\Http\Requests\UpdateAddressRequest;
 use App\Http\Requests\SearchCustomerRequest;
 use App\Http\Requests\CustomerUuidRequest;
-use App\Http\Requests\CustomerPhoneUuidRequest;
-use App\Http\Requests\CustomerEmailUuidRequest;
-use App\Http\Requests\CustomerAddressUuidRequest;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller as BaseController;
@@ -319,14 +319,44 @@ class CustomerController extends BaseController
         );
     }
 
+    public function setDefaultAddress(CustomerAddressUuidRequest $request, string $customerId, string $addressId): JsonResponse
+    {
+        return $this->handleSetDefaultOperation(
+            $customerId,
+            $addressId,
+            'setDefaultAddress',
+            'Primary address updated successfully',
+            'address'
+        );
+    }
+
     public function emailModal(CustomerUuidRequest $request, string $customerId): JsonResponse
     {
         return $this->loadModalHtml($request, $customerId, 'email', 'customer.modals.email-modal', 'emails');
     }
 
-    public function addressModal(CustomerUuidRequest $request, string $customerId): JsonResponse
+    public function addressModal(CustomerUuidRequest $request, string $customerId, MetaDataService $metaService): JsonResponse
     {
-        return $this->loadModalHtml($request, $customerId, 'address', 'customer.modals.address-modal', 'addresses');
+        try {
+            $customerData = $this->customerService->getCustomerShowData($customerId, []);
+            
+            if (is_null($customerData)) {
+                return $this->errorResponse('Customer not found', 404);
+            }
+
+            // Add countries to the customer data
+            $customerData['countries'] = $metaService->countries();
+
+            $modalHtml = view('customer.modals.address-modal', $customerData)->render();
+
+            return $this->successResponse('', [
+                'html' => $modalHtml, 
+                'addresses' => $customerData['addresses'] ?? [],
+                'countries' => $customerData['countries']
+            ]);
+        } catch (\Exception $e) {
+            return $this->errorResponse('Failed to load address modal: ' . $e->getMessage(), 500);
+        }
     }
 
     public function passportModal(CustomerUuidRequest $request, string $customerId): JsonResponse
